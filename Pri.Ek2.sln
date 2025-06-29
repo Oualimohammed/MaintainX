@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36203.30 d17.14
+VisualStudioVersion = 17.14.36203.30
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pri.Ek2.Api", "Pri.Ek2.Api\Pri.Ek2.Api.csproj", "{886077D3-0C72-46A2-A6F5-6719F28C9A39}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pri.Ek2.Core", "Pri.Ek2.Core\Pri.Ek2.Core.csproj", "{9AEF36F2-0AD6-42E7-8744-91786A2383D4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Pri.Ek2.Client", "Pri.Ek2.Client\Pri.Ek2.Client.csproj", "{2A946AB8-352C-4217-AE1A-F3F7D53D3C91}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{886077D3-0C72-46A2-A6F5-6719F28C9A39}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{886077D3-0C72-46A2-A6F5-6719F28C9A39}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{886077D3-0C72-46A2-A6F5-6719F28C9A39}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9AEF36F2-0AD6-42E7-8744-91786A2383D4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9AEF36F2-0AD6-42E7-8744-91786A2383D4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9AEF36F2-0AD6-42E7-8744-91786A2383D4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9AEF36F2-0AD6-42E7-8744-91786A2383D4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2A946AB8-352C-4217-AE1A-F3F7D53D3C91}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2A946AB8-352C-4217-AE1A-F3F7D53D3C91}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2A946AB8-352C-4217-AE1A-F3F7D53D3C91}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2A946AB8-352C-4217-AE1A-F3F7D53D3C91}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
