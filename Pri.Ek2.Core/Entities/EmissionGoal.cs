@@ -15,6 +15,8 @@ namespace Pri.Ek2.Core.Entities
         public DateTime EndDate { get; set; } // End date of the goal
         public decimal CurrentEmissionsKg { get; set; }
         public bool IsAchieved { get; set; } 
-        //public UserProfile UserProfile { get; set; } = null!;
+        public UserProfile UserProfile { get; set; } 
+        
+
     }
 }
