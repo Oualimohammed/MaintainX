@@ -1,23 +1,26 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace Pri.Ek2.Core.Entities
 {
     public class TransportRoute
     {
         public int Id { get; set; }
-        public string StartPoint { get; set; }
-        public string EndPoint { get; set; }
+
+        public int StartLocationId { get; set; }
+        public int EndLocationId { get; set; }
+        public int VehicleId { get; set; }
+
+        [ForeignKey("StartLocationId")]
+        public Location StartLocation { get; set; }
+
+        [ForeignKey("EndLocationId")]
+        public Location EndLocation { get; set; }
+
+        [ForeignKey("VehicleId")]
+        public Vehicle Vehicle { get; set; }
+
         public decimal DistanceKm { get; set; }
         public decimal EstimatedEmissionsKg { get; set; }
-        [ForeignKey("VehicleId")]
-        public Vehicle Vehicle { get; set; } = null!; 
-        public int VehicleId { get; set; }
         public string? ProofPath { get; set; }
-
     }
 }

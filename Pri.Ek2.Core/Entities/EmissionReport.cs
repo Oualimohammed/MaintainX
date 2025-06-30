@@ -14,5 +14,7 @@ namespace Pri.Ek2.Core.Entities
         public DateTime PeriodStart { get; set; }
         public DateTime PeriodEnd { get; set; }
         public string? Notes { get; set; } // Optional notes about the report
+        public UserProfile UserProfile { get; set; } 
+
     }
 }

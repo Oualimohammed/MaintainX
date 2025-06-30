@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.AspNetCore.Identity;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -15,6 +16,10 @@ namespace Pri.Ek2.Core.Entities
         public DateTime BirthData { get; set; }
         public string? ProfileImagePath { get; set; }
 
+
+        public ICollection<EmissionGoal> EmissionGoals { get; set; } 
         public ICollection<TransportRoute> Routes { get; set; }
+        public ICollection<EmissionReport> EmissionReports { get; set; }
+        public IdentityUser IdentityUser { get; set; } 
     }
 }

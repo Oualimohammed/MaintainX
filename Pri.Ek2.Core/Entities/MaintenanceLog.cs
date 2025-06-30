@@ -13,5 +13,7 @@ namespace Pri.Ek2.Core.Entities
         public DateTime MaintenanceDate { get; set; }
         public string Description { get; set; }
         public decimal? NewEmissionFactor { get; set; } 
+        public Vehicle Vehicle { get; set; } = null!; // Navigation property to Vehicle entity
+
     }
 }
