@@ -2,6 +2,8 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Pri.Ek2.Core.Data;
+using Pri.Ek2.Core.Services.Implementations;
+using Pri.Ek2.Core.Services.Interfaces;
 
 namespace Pri.Ek2.Api
 {
@@ -19,6 +21,15 @@ namespace Pri.Ek2.Api
                 .AddDefaultTokenProviders();
 
             // Add services to the container.
+            builder.Services.AddScoped<IVehicleService, VehicleService>();
+            builder.Services.AddScoped<IEmissionReportService, EmissionReportService>();
+            builder.Services.AddScoped<ITransportRouteService, TransportRouteService>();
+            builder.Services.AddScoped<IEmissionGoalService, EmissionGoalService>();
+            builder.Services.AddScoped<IUserProfileService, UserProfileService>();
+            builder.Services.AddScoped<IRewardService, RewardService>();
+            builder.Services.AddScoped<IMaintenanceLogService, MaintenanceLogService>();
+            builder.Services.AddScoped<ILocationService, LocationService>();
+
 
             builder.Services.AddControllers();
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle

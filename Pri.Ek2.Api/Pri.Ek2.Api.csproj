@@ -19,8 +19,4 @@
     <ProjectReference Include="..\Pri.Ek2.Core\Pri.Ek2.Core.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Controllers\" />
-  </ItemGroup>
-
 </Project>
