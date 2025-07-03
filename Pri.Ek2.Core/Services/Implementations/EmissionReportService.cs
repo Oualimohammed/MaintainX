@@ -81,7 +81,7 @@ namespace Pri.Ek2.Core.Services.Implementations
             var report = await _context.EmissionReports
                 .Include(r => r.UserProfile)
                 .ThenInclude(up => up.IdentityUser)
-                .FirstOrDefaultAsync(r => r.Id == id);
+                .SingleOrDefaultAsync(r => r.Id == id);
 
             if (report == null)
                 throw new KeyNotFoundException($"Report {id} not found");
@@ -123,21 +123,32 @@ namespace Pri.Ek2.Core.Services.Implementations
 
         public async Task<EmissionReportResponseDto> UpdateAsync(int id, EmissionReportRequestDto dto)
         {
-            if (dto == null)
-                throw new ArgumentNullException(nameof(dto));
 
-            var report = await _context.EmissionReports.FindAsync(id);
-            if (report == null)
-                throw new KeyNotFoundException($"Report {id} not found");
+            using var transaction = await _context.Database.BeginTransactionAsync();    
 
-            // Update velden
-            report.TotalEmissionsKg = dto.TotalEmissionsKg;
-            report.PeriodStart = dto.PeriodStart;
-            report.PeriodEnd = dto.PeriodEnd;
-            report.Notes = dto.Notes;
+            try
+            {
+                if (dto == null)
+                    throw new ArgumentNullException(nameof(dto));
 
-            await _context.SaveChangesAsync();
-            return await GetByIdAsync(id);
+                var report = await _context.EmissionReports.FindAsync(id);
+                if (report == null)
+                    throw new KeyNotFoundException($"Report {id} not found");
+
+                // Update velden
+                report.TotalEmissionsKg = dto.TotalEmissionsKg;
+                report.PeriodStart = dto.PeriodStart;
+                report.PeriodEnd = dto.PeriodEnd;
+                report.Notes = dto.Notes;
+
+                await _context.SaveChangesAsync();
+                return await GetByIdAsync(id);
+            }
+            catch
+            {
+                await transaction.RollbackAsync();
+                throw;
+            }
         }
     }
 }
