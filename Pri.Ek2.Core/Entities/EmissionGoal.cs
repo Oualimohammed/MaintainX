@@ -16,7 +16,5 @@ namespace Pri.Ek2.Core.Entities
         public decimal CurrentEmissionsKg { get; set; }
         public bool IsAchieved { get; set; } 
         public UserProfile UserProfile { get; set; } 
-        
-
     }
 }
