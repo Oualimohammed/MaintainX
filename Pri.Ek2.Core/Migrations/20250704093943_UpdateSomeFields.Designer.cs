@@ -12,8 +12,8 @@ using Pri.Ek2.Core.Data;
 namespace Pri.Ek2.Core.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20250703113849_AddFieldEmailAndFirstAndLastNameToEntitie")]
-    partial class AddFieldEmailAndFirstAndLastNameToEntitie
+    [Migration("20250704093943_UpdateSomeFields")]
+    partial class UpdateSomeFields
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
