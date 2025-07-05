@@ -50,14 +50,18 @@ namespace Pri.Ek2.Core.Data
                         UserId = adminUser.Id,
                         FirstName = "Admin",
                         LastName = "User",
-                        BirthData = new DateTime(1980, 1, 1)
+                        BirthData = new DateTime(1980, 1, 1),
+                        Email = adminUser.Email,
+                        ProfileImagePath = "images/admin.png"
                     },
                     new UserProfile
                     {
                         UserId = normalUser.Id,
                         FirstName = "Normal",
                         LastName = "User",
-                        BirthData = new DateTime(1990, 1, 1)
+                        BirthData = new DateTime(1990, 1, 1),
+                        Email = normalUser.Email,
+                        ProfileImagePath = "images/user.png"
                     }
                 );
                 await context.SaveChangesAsync();
