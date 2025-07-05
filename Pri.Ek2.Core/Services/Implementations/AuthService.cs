@@ -23,43 +23,55 @@ namespace Pri.Ek2.Core.Services.Implementations
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto loginRequestDto)
         {
-            var user = new IdentityUser { UserName = loginRequestDto.Email, Email = loginRequestDto.Email };
-            var result = await _userManager.CreateAsync(user, loginRequestDto.Password);
+            // Zoek gebruiker op email
+            var user = await _userManager.FindByEmailAsync(loginRequestDto.Email);
+            if (user == null)
+                throw new Exception("Invalid login attempt.");
 
-            if (!result.Succeeded)
-                throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
+            // Check wachtwoord
+            var passwordValid = await _userManager.CheckPasswordAsync(user, loginRequestDto.Password);
+            if (!passwordValid)
+                throw new Exception("Invalid login attempt.");
+
+            // Haal rollen op
+            var roles = await _userManager.GetRolesAsync(user);
 
             return new AuthResponseDto
             {
-                Token = _tokenService.GenerateToken(user),
+                Token = _tokenService.GenerateToken(user, roles),
                 Expiration = DateTime.Now.AddHours(2),
                 UserProfile = new UserProfileResponseDto
                 {
                     Email = user.Email,
-                    Password = loginRequestDto.Password
+                    // Voeg andere user info toe als je hebt
                 }
             };
         }
 
-        public Task<AuthResponseDto> RegisterAsync(RegisterRequestDto registerRequestDto)
+        public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto registerRequestDto)
         {
             var user = new IdentityUser { UserName = registerRequestDto.Email, Email = registerRequestDto.Email };
-            var result = _userManager.CreateAsync(user, registerRequestDto.Password).Result;
+            var result = await _userManager.CreateAsync(user, registerRequestDto.Password);
             if (!result.Succeeded)
                 throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
-            return Task.FromResult(new AuthResponseDto
+
+            // Voeg standaard rol toe, bv "User"
+            await _userManager.AddToRoleAsync(user, "User");
+
+            var roles = await _userManager.GetRolesAsync(user);
+
+            return new AuthResponseDto
             {
-                Token = _tokenService.GenerateToken(user),
+                Token = _tokenService.GenerateToken(user, roles),
                 Expiration = DateTime.Now.AddHours(2),
                 UserProfile = new UserProfileResponseDto
                 {
                     Email = user.Email,
-                    Password = registerRequestDto.Password,
                     FirstName = registerRequestDto.FirstName,
                     LastName = registerRequestDto.LastName,
                     BirthData = registerRequestDto.BirthDate
                 }
-            });
+            };
         }
     }
 }
