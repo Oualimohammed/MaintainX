@@ -2,11 +2,7 @@
 using Pri.Ek2.Core.Dtos.AuthDtos;
 using Pri.Ek2.Core.Dtos.ResponseDtos;
 using Pri.Ek2.Core.Services.Interfaces;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 
 namespace Pri.Ek2.Core.Services.Implementations
 {
@@ -42,8 +38,7 @@ namespace Pri.Ek2.Core.Services.Implementations
                 Expiration = DateTime.Now.AddHours(2),
                 UserProfile = new UserProfileResponseDto
                 {
-                    Email = user.Email,
-                    // Voeg andere user info toe als je hebt
+                    Email = user.Email
                 }
             };
         }
