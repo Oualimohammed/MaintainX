@@ -20,6 +20,8 @@ namespace Pri.Ek2.Core.Data
             {
                 await roleManager.CreateAsync(new IdentityRole("Admin"));
                 await roleManager.CreateAsync(new IdentityRole("User"));
+                await userManager.CreateAsync(new IdentityUser
+                    ("Mechanic"));
             }
 
             // 2. Seed standaardgebruikers
@@ -43,6 +45,15 @@ namespace Pri.Ek2.Core.Data
                 await userManager.CreateAsync(normalUser, "UserPassword123!");
                 await userManager.AddToRoleAsync(normalUser, "User");
 
+                var mechanicUser = new IdentityUser
+                {
+                    UserName = "mechanic@example.com",
+                    Email = "mechanic@example.com",
+                    EmailConfirmed = true
+                };
+                await userManager.CreateAsync(mechanicUser, "MechanicPassword123!");
+                await userManager.AddToRoleAsync(mechanicUser, "Mechanic");
+
                 // UserProfiles toevoegen
                 context.UserProfiles.AddRange(
                     new UserProfile
@@ -62,6 +73,15 @@ namespace Pri.Ek2.Core.Data
                         BirthData = new DateTime(1990, 1, 1),
                         Email = normalUser.Email,
                         ProfileImagePath = "images/user.png"
+                    },
+                    new UserProfile
+                    {
+                        UserId = mechanicUser.Id,
+                        FirstName = "John",
+                        LastName = "Doe",
+                        BirthData = new DateTime(1985, 5, 15),
+                        Email = mechanicUser.Email,
+                        ProfileImagePath = "images/mechanic.png"
                     }
                 );
                 await context.SaveChangesAsync();
