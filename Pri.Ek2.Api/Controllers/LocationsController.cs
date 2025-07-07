@@ -40,5 +40,16 @@ namespace Pri.Ek2.Api.Controllers
                 return NotFound($"Location with ID {id} not found.");
             }
         }
+
+        [HttpGet("search")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<LocationResponseDto>>> Search([FromQuery] string criteria)
+        {
+            if (string.IsNullOrWhiteSpace(criteria))
+                return BadRequest("Search criteria is required.");
+
+            var results = await _locationService.GetLocationsByCriteriaAsync(criteria);
+            return Ok(results);
+        }
     }
 }
