@@ -73,6 +73,19 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
-      
+        [HttpDelete("{userId}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(string userId)
+        {
+            try
+            {
+                await _profileService.DeleteUserProfileAsync(userId);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Profiel voor gebruiker {userId} niet gevonden.");
+            }
+        }
     }
 }
