@@ -30,8 +30,19 @@ namespace Pri.Ek2.Api.Controllers
         }
 
         [HttpGet("{id}")]
+        [AllowAnonymous]
         public async Task<ActionResult<VehicleResponseDto>> GetById(int id)
-            => Ok(await _vehicleService.GetByIdAsync(id));
+        {
+            try
+            {
+                var vehicle = await _vehicleService.GetByIdAsync(id);
+                return Ok(vehicle);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Vehicle with ID {id} not found.");
+            }
+        }
 
         [HttpGet("type/{type}")]
         public async Task<ActionResult<IEnumerable<VehicleResponseDto>>> GetByType(VehicleType type)
