@@ -30,6 +30,20 @@ namespace Pri.Ek2.Api.Controllers
             return Ok(result);
         }
         
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<TransportRouteResponseDto>> GetById(int id)
+        {
+            try
+            {
+                var route = await _routeService.GetByIdAsync(id);
+                return Ok(route);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Route with ID {id} not found.");
+            }
+        }
 
     }
 }
