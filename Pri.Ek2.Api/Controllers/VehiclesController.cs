@@ -5,6 +5,7 @@ using Pri.Ek2.Core.Dtos.ResponseDtos;
 using Pri.Ek2.Core.Entities;
 using Pri.Ek2.Core.Services.Interfaces;
 
+
 namespace Pri.Ek2.Api.Controllers
 {
     [Route("api/[controller]")]
@@ -79,5 +80,19 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _vehicleService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Vehicle with ID {id} not found.");
+            }
+        }
     }
 }
