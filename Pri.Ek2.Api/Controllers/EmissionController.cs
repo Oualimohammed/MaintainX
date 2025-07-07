@@ -23,6 +23,28 @@ namespace Pri.Ek2.Api.Controllers
             _reportService = reportService;
         }
 
+        [HttpGet("goals")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<EmissionGoalResponseDto>>> GetGoals()
+        {
+            var results = await _goalService.GetAllAsync();
+            return Ok(results);
+        }
+
+        [HttpGet("goals/{id}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<EmissionGoalResponseDto>> GetGoalById(int id)
+        {
+            try
+            {
+                var result = await _goalService.GetByIdAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Emissiedoel {id} niet gevonden.");
+            }
+        }
        
     }
 }
