@@ -48,5 +48,15 @@ namespace Pri.Ek2.Api.Controllers
             var logs = await _maintenanceService.GetLogsByVehicleAsync(vehicleId);
             return Ok(logs);
         }
+
+        [HttpPost]
+        public async Task<ActionResult<MaintenanceLogResponseDto>> Add([FromBody] MaintenanceLogRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _maintenanceService.AddAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
     }
 }
