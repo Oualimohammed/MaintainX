@@ -97,5 +97,13 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
+
+        [HttpGet("reports")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<EmissionReportResponseDto>>> GetReports()
+        {
+            var results = await _reportService.GetAllAsync();
+            return Ok(results);
+        }
     }
 }
