@@ -45,5 +45,12 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
+        [HttpGet("vehicle/{vehicleId}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<TransportRouteResponseDto>>> GetByVehicle(int vehicleId)
+        {
+            var routes = await _routeService.GetRoutesByVehicleAsync(vehicleId);
+            return Ok(routes);
+        }
     }
 }
