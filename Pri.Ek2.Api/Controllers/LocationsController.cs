@@ -25,7 +25,7 @@ namespace Pri.Ek2.Api.Controllers
             var results = await _locationService.GetAllAsync();
             return Ok(results);
         }
-      
+
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<ActionResult<LocationResponseDto>> GetById(int id)
