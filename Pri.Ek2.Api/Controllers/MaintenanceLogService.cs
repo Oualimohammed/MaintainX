@@ -18,5 +18,12 @@ namespace Pri.Ek2.Api.Controllers
             _maintenanceService = maintenanceService;
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<MaintenanceLogResponseDto>>> GetAll()
+        {
+            var logs = await _maintenanceService.GetAllAsync();
+            return Ok(logs);
+        }
     }
 }
