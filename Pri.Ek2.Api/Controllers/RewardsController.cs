@@ -51,5 +51,16 @@ namespace Pri.Ek2.Api.Controllers
             var results = await _rewardService.GetRewardsByCriteriaAsync(criteria);
             return Ok(results);
         }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<RewardResponseDto>> Add([FromBody] RewardRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _rewardService.AddAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
     }
 }
