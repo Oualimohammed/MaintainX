@@ -52,5 +52,18 @@ namespace Pri.Ek2.Api.Controllers
             var results = await _goalService.GetGoalsByCriteriaAsync(userId);
             return Ok(results);
         }
+
+        [HttpPost("goals")]
+        public async Task<ActionResult<EmissionGoalResponseDto>> AddGoal([FromBody] EmissionGoalRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            dto.UserId = userId; // 🔐 veilig en automatisch
+
+            var result = await _goalService.AddAsync(dto);
+            return CreatedAtAction(nameof(GetGoalById), new { id = result.Id }, result);
+        }
     }
 }
