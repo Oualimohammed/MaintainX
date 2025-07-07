@@ -80,5 +80,20 @@ namespace Pri.Ek2.Api.Controllers
                 return NotFound($"Location with ID {id} not found.");
             }
         }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _locationService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Location with ID {id} not found.");
+            }
+        }
     }
 }
