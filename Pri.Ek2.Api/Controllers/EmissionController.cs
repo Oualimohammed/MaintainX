@@ -45,7 +45,7 @@ namespace Pri.Ek2.Api.Controllers
                 return NotFound($"Emissiedoel {id} niet gevonden.");
             }
         }
-       
+
         [HttpGet("goals/user/{userId}")]
         public async Task<ActionResult<IEnumerable<EmissionGoalResponseDto>>> GetGoalsByUser(string userId)
         {
@@ -152,6 +152,20 @@ namespace Pri.Ek2.Api.Controllers
             {
                 var updated = await _reportService.UpdateAsync(id, dto);
                 return Ok(updated);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Rapport {id} niet gevonden.");
+            }
+        }
+
+        [HttpDelete("reports/{id}")]
+        public async Task<IActionResult> DeleteReport(int id)
+        {
+            try
+            {
+                await _reportService.DeleteAsync(id);
+                return NoContent();
             }
             catch (KeyNotFoundException)
             {
