@@ -54,6 +54,25 @@ namespace Pri.Ek2.Api.Controllers
             return CreatedAtAction(nameof(GetByUserId), new { userId = result.UserId }, result);
         }
 
-        
+        [HttpPut]
+        public async Task<ActionResult<UserProfileResponseDto>> Update([FromBody] UserProfileRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+
+            try
+            {
+                var updated = await _profileService.UpdateUserProfileAsync(userId, dto);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Profiel voor gebruiker {userId} niet gevonden.");
+            }
+        }
+
+      
     }
 }
