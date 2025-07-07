@@ -11,6 +11,7 @@ namespace Pri.Ek2.Api.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize]
     public class VehiclesController : ControllerBase
     {
         private readonly IVehicleService _vehicleService;
@@ -21,8 +22,12 @@ namespace Pri.Ek2.Api.Controllers
         }
 
         [HttpGet]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<VehicleResponseDto>>> GetAll()
-            => Ok(await _vehicleService.GetAllAsync());
+        {
+            var vehicles = await _vehicleService.GetAllAsync();
+            return Ok(vehicles);
+        }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<VehicleResponseDto>> GetById(int id)
