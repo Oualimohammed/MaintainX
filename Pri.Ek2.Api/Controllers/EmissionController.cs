@@ -46,5 +46,11 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
        
+        [HttpGet("goals/user/{userId}")]
+        public async Task<ActionResult<IEnumerable<EmissionGoalResponseDto>>> GetGoalsByUser(string userId)
+        {
+            var results = await _goalService.GetGoalsByCriteriaAsync(userId);
+            return Ok(results);
+        }
     }
 }
