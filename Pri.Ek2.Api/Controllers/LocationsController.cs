@@ -26,5 +26,19 @@ namespace Pri.Ek2.Api.Controllers
             return Ok(results);
         }
       
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<LocationResponseDto>> GetById(int id)
+        {
+            try
+            {
+                var result = await _locationService.GetByIdAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Location with ID {id} not found.");
+            }
+        }
     }
 }
