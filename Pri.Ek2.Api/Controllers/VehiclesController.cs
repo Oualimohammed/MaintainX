@@ -45,8 +45,12 @@ namespace Pri.Ek2.Api.Controllers
         }
 
         [HttpGet("type/{type}")]
+        [AllowAnonymous]
         public async Task<ActionResult<IEnumerable<VehicleResponseDto>>> GetByType(VehicleType type)
-            => Ok(await _vehicleService.GetByTypeAsync(type));
+        {
+            var vehicles = await _vehicleService.GetByTypeAsync(type);
+            return Ok(vehicles);
+        }
 
         [HttpPost]
         [Authorize(Roles = "Admin")] 
