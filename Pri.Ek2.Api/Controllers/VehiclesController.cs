@@ -54,8 +54,11 @@ namespace Pri.Ek2.Api.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin")] 
-        public async Task<ActionResult<VehicleResponseDto>> Add(VehicleRequestDto dto)
+        public async Task<ActionResult<VehicleResponseDto>> Add([FromBody] VehicleRequestDto dto)
         {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
             var result = await _vehicleService.AddAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
