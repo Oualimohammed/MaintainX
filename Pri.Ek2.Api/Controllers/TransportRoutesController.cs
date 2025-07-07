@@ -22,6 +22,13 @@ namespace Pri.Ek2.Api.Controllers
             _hostEnvironment = hostEnvironment;
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<TransportRouteResponseDto>>> GetAll()
+        {
+            var result = await _routeService.GetAllAsync();
+            return Ok(result);
+        }
         
 
     }
