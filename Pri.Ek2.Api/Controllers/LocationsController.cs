@@ -18,6 +18,13 @@ namespace Pri.Ek2.Api.Controllers
             _locationService = locationService;
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<LocationResponseDto>>> GetAll()
+        {
+            var results = await _locationService.GetAllAsync();
+            return Ok(results);
+        }
       
     }
 }
