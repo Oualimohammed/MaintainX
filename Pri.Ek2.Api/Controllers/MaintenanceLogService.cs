@@ -25,5 +25,20 @@ namespace Pri.Ek2.Api.Controllers
             var logs = await _maintenanceService.GetAllAsync();
             return Ok(logs);
         }
+
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<MaintenanceLogResponseDto>> GetById(int id)
+        {
+            try
+            {
+                var log = await _maintenanceService.GetByIdAsync(id);
+                return Ok(log);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Onderhoudslog {id} niet gevonden.");
+            }
+        }
     }
 }
