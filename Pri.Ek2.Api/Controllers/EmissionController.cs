@@ -65,5 +65,22 @@ namespace Pri.Ek2.Api.Controllers
             var result = await _goalService.AddAsync(dto);
             return CreatedAtAction(nameof(GetGoalById), new { id = result.Id }, result);
         }
+
+        [HttpPut("goals/{id}")]
+        public async Task<ActionResult<EmissionGoalResponseDto>> UpdateGoal(int id, [FromBody] EmissionGoalRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var updated = await _goalService.UpdateAsync(id, dto);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Doel {id} niet gevonden.");
+            }
+        }
     }
 }
