@@ -141,5 +141,22 @@ namespace Pri.Ek2.Api.Controllers
             var result = await _reportService.AddAsync(dto);
             return CreatedAtAction(nameof(GetReportById), new { id = result.Id }, result);
         }
+
+        [HttpPut("reports/{id}")]
+        public async Task<ActionResult<EmissionReportResponseDto>> UpdateReport(int id, [FromBody] EmissionReportRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var updated = await _reportService.UpdateAsync(id, dto);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Rapport {id} niet gevonden.");
+            }
+        }
     }
 }
