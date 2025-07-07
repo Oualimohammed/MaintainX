@@ -127,5 +127,19 @@ namespace Pri.Ek2.Api.Controllers
             var results = await _reportService.GetReportsByCriteriaAsync(criteria);
             return Ok(results);
         }
+
+        [HttpPost("reports")]
+        public async Task<ActionResult<EmissionReportResponseDto>> AddReport([FromBody] EmissionReportRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            dto.UserId = userId; // 🔐 veilig en automatisch
+            
+
+            var result = await _reportService.AddAsync(dto);
+            return CreatedAtAction(nameof(GetReportById), new { id = result.Id }, result);
+        }
     }
 }
