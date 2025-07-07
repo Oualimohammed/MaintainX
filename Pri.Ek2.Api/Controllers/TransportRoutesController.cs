@@ -29,7 +29,7 @@ namespace Pri.Ek2.Api.Controllers
             var result = await _routeService.GetAllAsync();
             return Ok(result);
         }
-        
+
         [HttpGet("{id}")]
         [AllowAnonymous]
         public async Task<ActionResult<TransportRouteResponseDto>> GetById(int id)
