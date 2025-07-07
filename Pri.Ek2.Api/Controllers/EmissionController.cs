@@ -120,5 +120,12 @@ namespace Pri.Ek2.Api.Controllers
                 return NotFound($"Rapport {id} niet gevonden.");
             }
         }
+
+        [HttpGet("reports/search")]
+        public async Task<ActionResult<IEnumerable<EmissionReportResponseDto>>> SearchReports([FromQuery] string criteria)
+        {
+            var results = await _reportService.GetReportsByCriteriaAsync(criteria);
+            return Ok(results);
+        }
     }
 }
