@@ -62,5 +62,23 @@ namespace Pri.Ek2.Api.Controllers
             var result = await _rewardService.AddAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
+
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<RewardResponseDto>> Update(int id, [FromBody] RewardRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var result = await _rewardService.UpdateAsync(id, dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Reward met ID {id} niet gevonden.");
+            }
+        }
     }
 }
