@@ -62,5 +62,23 @@ namespace Pri.Ek2.Api.Controllers
             var result = await _locationService.AddAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
+
+        [HttpPut("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<LocationResponseDto>> Update(int id, [FromBody] LocationRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var result = await _locationService.UpdateAsync(id, dto);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Location with ID {id} not found.");
+            }
+        }
     }
 }
