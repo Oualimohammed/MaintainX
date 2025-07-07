@@ -80,5 +80,20 @@ namespace Pri.Ek2.Api.Controllers
                 return NotFound($"Reward met ID {id} niet gevonden.");
             }
         }
+
+        [HttpDelete("{id}")]
+        [Authorize(Roles = "Admin")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _rewardService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Reward met ID {id} niet gevonden.");
+            }
+        }
     }
 }
