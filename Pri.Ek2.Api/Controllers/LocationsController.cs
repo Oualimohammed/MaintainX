@@ -51,5 +51,16 @@ namespace Pri.Ek2.Api.Controllers
             var results = await _locationService.GetLocationsByCriteriaAsync(criteria);
             return Ok(results);
         }
+
+        [HttpPost]
+        [Authorize(Roles = "Admin")]
+        public async Task<ActionResult<LocationResponseDto>> Add([FromBody] LocationRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _locationService.AddAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
     }
 }
