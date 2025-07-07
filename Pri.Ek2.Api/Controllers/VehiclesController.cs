@@ -65,8 +65,21 @@ namespace Pri.Ek2.Api.Controllers
 
         [HttpPut("{id}")]
         [Authorize(Roles = "Admin")]
-        public async Task<ActionResult<VehicleResponseDto>> Update(int id, VehicleRequestDto dto)
-            => Ok(await _vehicleService.UpdateAsync(id, dto));
+        public async Task<ActionResult<VehicleResponseDto>> Update(int id, [FromBody] VehicleRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var updated = await _vehicleService.UpdateAsync(id, dto);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Vehicle with ID {id} not found.");
+            }
+        }
 
         [HttpDelete("{id}")]
         [Authorize(Roles = "Admin")]
