@@ -83,5 +83,22 @@ namespace Pri.Ek2.Api.Controllers
 
             return Ok(new { filePath = $"/proofs/{uniqueFileName}" });
         }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<TransportRouteResponseDto>> Update(int id, [FromBody] TransportRouteRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var updated = await _routeService.UpdateAsync(id, dto);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Route met ID {id} niet gevonden.");
+            }
+        }
     }
 }
