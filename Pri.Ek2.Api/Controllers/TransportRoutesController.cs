@@ -62,5 +62,26 @@ namespace Pri.Ek2.Api.Controllers
             var result = await _routeService.AddAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
+
+        [HttpPost("{id}/upload-proof")]
+        public async Task<IActionResult> UploadProof(int id, IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+                return BadRequest("Geen bestand meegegeven.");
+
+            var uploadsFolder = Path.Combine(_hostEnvironment.WebRootPath, "proofs");
+            if (!Directory.Exists(uploadsFolder))
+                Directory.CreateDirectory(uploadsFolder);
+
+            var uniqueFileName = $"{id}_{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+            var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+            using var stream = new FileStream(filePath, FileMode.Create);
+            await file.CopyToAsync(stream);
+
+            await _routeService.UpdateProofPathAsync(id, $"/proofs/{uniqueFileName}");
+
+            return Ok(new { filePath = $"/proofs/{uniqueFileName}" });
+        }
     }
 }
