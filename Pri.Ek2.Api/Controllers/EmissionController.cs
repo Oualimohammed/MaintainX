@@ -105,5 +105,20 @@ namespace Pri.Ek2.Api.Controllers
             var results = await _reportService.GetAllAsync();
             return Ok(results);
         }
+
+        [HttpGet("reports/{id}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<EmissionReportResponseDto>> GetReportById(int id)
+        {
+            try
+            {
+                var result = await _reportService.GetByIdAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Rapport {id} niet gevonden.");
+            }
+        }
     }
 }
