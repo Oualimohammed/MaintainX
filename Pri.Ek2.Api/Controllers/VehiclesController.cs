@@ -85,8 +85,15 @@ namespace Pri.Ek2.Api.Controllers
         [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Delete(int id)
         {
+            try
+            {
             await _vehicleService.DeleteAsync(id);
             return NoContent();
+        }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Vehicle with ID {id} not found.");
+            }
         }
     }
 }
