@@ -20,7 +20,6 @@ namespace Pri.Ek2.Api.Controllers
             _profileService = profileService;
         }
 
-        
         [HttpGet]
         [Authorize(Roles = "Admin")]
         public async Task<ActionResult<IEnumerable<UserProfileResponseDto>>> GetAll()
@@ -29,6 +28,20 @@ namespace Pri.Ek2.Api.Controllers
             return Ok(profiles);
         }
 
-       
+        [HttpGet("{userId}")]
+        public async Task<ActionResult<UserProfileResponseDto>> GetByUserId(string userId)
+        {
+            try
+            {
+                var profile = await _profileService.GetUserProfileAsync(userId);
+                return Ok(profile);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Profiel voor gebruiker {userId} niet gevonden.");
+            }
+        }
+
+        
     }
 }
