@@ -136,7 +136,7 @@ namespace Pri.Ek2.Core.Services.Implementations
                 .AnyAsync(up => up.UserId == userId);
         }
 
-        private EmissionGoalResponseDto MapToDto(EmissionGoal goal)
+        private static EmissionGoalResponseDto MapToDto(EmissionGoal goal)
         {
             return new EmissionGoalResponseDto
             {
