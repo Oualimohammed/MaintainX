@@ -58,5 +58,22 @@ namespace Pri.Ek2.Api.Controllers
             var result = await _maintenanceService.AddAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<MaintenanceLogResponseDto>> Update(int id, [FromBody] MaintenanceLogRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var updated = await _maintenanceService.UpdateAsync(id, dto);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Log {id} niet gevonden.");
+            }
+        }
     }
 }
