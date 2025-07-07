@@ -40,5 +40,16 @@ namespace Pri.Ek2.Api.Controllers
                 return NotFound($"Reward met ID {id} niet gevonden.");
             }
         }
+
+        [HttpGet("search")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<RewardResponseDto>>> Search([FromQuery] string criteria)
+        {
+            if (string.IsNullOrWhiteSpace(criteria))
+                return BadRequest("Zoekterm mag niet leeg zijn.");
+
+            var results = await _rewardService.GetRewardsByCriteriaAsync(criteria);
+            return Ok(results);
+        }
     }
 }
