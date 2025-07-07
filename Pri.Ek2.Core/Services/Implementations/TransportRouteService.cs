@@ -151,5 +151,16 @@ namespace Pri.Ek2.Core.Services.Implementations
                 ProofPath = route.ProofPath
             };
         }
+
+
+        // dat is een methode die de TransportRoute entiteit omzet naar een TransportRouteResponseDto
+        public async Task UpdateProofPathAsync(int id, string proofPath)
+        {
+            var route = await _context.TransportRoutes.FindAsync(id);
+            if (route == null)
+                throw new KeyNotFoundException($"Route with ID {id} not found");
+            route.ProofPath = proofPath;
+            await _context.SaveChangesAsync();
+        }
     }
 }

@@ -17,5 +17,6 @@ namespace Pri.Ek2.Core.Services.Interfaces
         Task DeleteAsync(int id);
         // Optioneel:
         Task<IEnumerable<TransportRouteResponseDto>> GetRoutesByVehicleAsync(int vehicleId);
+        Task UpdateProofPathAsync(int id, string proofPath);
     }
 }
