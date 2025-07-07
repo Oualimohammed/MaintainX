@@ -18,5 +18,27 @@ namespace Pri.Ek2.Api.Controllers
             _rewardService = rewardService;
         }
 
+        [HttpGet]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<RewardResponseDto>>> GetAll()
+        {
+            var results = await _rewardService.GetAllAsync();
+            return Ok(results);
+        }
+
+        [HttpGet("{id}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<RewardResponseDto>> GetById(int id)
+        {
+            try
+            {
+                var result = await _rewardService.GetByIdAsync(id);
+                return Ok(result);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Reward met ID {id} niet gevonden.");
+            }
+        }
     }
 }
