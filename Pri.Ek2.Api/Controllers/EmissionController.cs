@@ -82,5 +82,20 @@ namespace Pri.Ek2.Api.Controllers
                 return NotFound($"Doel {id} niet gevonden.");
             }
         }
+
+        [HttpDelete("goals/{id}")]
+        public async Task<IActionResult> DeleteGoal(int id)
+        {
+            try
+            {
+                await _goalService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Doel {id} niet gevonden.");
+            }
+        }
+
     }
 }
