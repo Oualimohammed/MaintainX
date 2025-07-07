@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Pri.Ek2.Core.Dtos.RequestDtos;
 using Pri.Ek2.Core.Dtos.ResponseDtos;
+using Pri.Ek2.Core.Entities;
 using Pri.Ek2.Core.Services.Interfaces;
 
 namespace Pri.Ek2.Api.Controllers
@@ -40,6 +42,13 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
-        
+        [HttpGet("type/{type}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<VehicleResponseDto>>> GetByType(VehicleType type)
+        {
+            var vehicles = await _vehicleService.GetByTypeAsync(type);
+            return Ok(vehicles);
+        }
+
     }
 }
