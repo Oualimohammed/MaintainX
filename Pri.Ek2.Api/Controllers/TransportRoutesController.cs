@@ -52,5 +52,15 @@ namespace Pri.Ek2.Api.Controllers
             var routes = await _routeService.GetRoutesByVehicleAsync(vehicleId);
             return Ok(routes);
         }
+
+        [HttpPost]
+        public async Task<ActionResult<TransportRouteResponseDto>> Add([FromBody] TransportRouteRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var result = await _routeService.AddAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
+        }
     }
 }
