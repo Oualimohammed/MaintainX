@@ -42,6 +42,18 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
+        [HttpPost]
+        public async Task<ActionResult<UserProfileResponseDto>> Create([FromBody] UserProfileRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            var result = await _profileService.CreateUserProfileAsync(userId, dto);
+
+            return CreatedAtAction(nameof(GetByUserId), new { userId = result.UserId }, result);
+        }
+
         
     }
 }
