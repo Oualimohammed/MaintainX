@@ -4,6 +4,64 @@
 
 <h3>Voertuigen</h3>
     <input class="form-control w-50" placeholder="Zoek op kenteken, model, type..." @bind="searchTerm" />
+@if (isLoading)
+{
+    <div class="text-center my-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (errorMessage != null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (filteredVehicles.Count == 0)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Geen voertuigen gevonden.
+    </div>
+}
+else
+{
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Kenteken</th>
+                <th>Model</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Kilometerstand</th>
+                <th>Emissie</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var v in filteredVehicles)
+            {
+                <tr>
+                    <td>@v.LicensePlate</td>
+                    <td>@v.Model</td>
+                    <td>@GetVehicleTypeDisplay(v.Type)</td>
+                    <td>
+                        <span class="badge @(GetStatusBadgeClass(v.Status))">@v.Status</span>
+                    </td>
+                    <td>@v.CurrentMileage.ToString("N0") km</td>
+                    <td>
+                        <span class="badge @(v.EmissionFactor > 2.5m ? "bg-danger" : "bg-success")">
+                            @v.EmissionFactor g/km
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" @onclick="() => EditVehicle(v)">Bewerken</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => ConfirmDeleteVehicle(v.Id)">Verwijderen</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+    private List<VehicleResponseDto> vehicles = new();
     private List<VehicleResponseDto> filteredVehicles => string.IsNullOrWhiteSpace(searchTerm)
         ? vehicles
         : vehicles.Where(v =>
@@ -11,4 +69,30 @@
             (v.Model?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
             GetVehicleTypeDisplay(v.Type).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
         ).ToList();
+    private bool isLoading = true;
+    private string errorMessage;
     private string searchTerm = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVehicles();
+    }
+
+    private async Task LoadVehicles()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var result = await VehicleService.GetAllAsync();
+            vehicles = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij laden voertuigen: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
