@@ -6,5 +6,6 @@ namespace Pri.Ek2.Client.Services.Interfaces
     {
         Task<AuthResponseDto> RegisterAsync(RegisterRequestDto registerRequestDto);
         Task<AuthResponseDto> LoginAsync(LoginRequestDto loginRequestDto);
+        Task LogoutAsync();
     }
 }
