@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Pri.Ek2.Core.Dtos.AuthDtos;
 using Pri.Ek2.Core.Services.Interfaces;
 
@@ -35,6 +36,7 @@ namespace Pri.Ek2.Api.Controllers
 
 
         [HttpPost("register")]
+        [Authorize(Roles = "Admin")]
         public async Task<IActionResult> Register([FromBody] RegisterRequestDto registerRequestDto)
         {
             if (!ModelState.IsValid)
