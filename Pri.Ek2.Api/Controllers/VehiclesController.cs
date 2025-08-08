@@ -52,7 +52,7 @@ namespace Pri.Ek2.Api.Controllers
         }
 
         [HttpPost]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Mechanic")]
         public async Task<ActionResult<VehicleResponseDto>> Add([FromBody] VehicleRequestDto dto)
         {
             if (!ModelState.IsValid)
@@ -63,7 +63,7 @@ namespace Pri.Ek2.Api.Controllers
         }
 
         [HttpPut("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Mechanic")]
         public async Task<ActionResult<VehicleResponseDto>> Update(int id, [FromBody] VehicleRequestDto dto)
         {
             if (!ModelState.IsValid)
@@ -81,7 +81,7 @@ namespace Pri.Ek2.Api.Controllers
         }
 
         [HttpDelete("{id}")]
-        [Authorize(Roles = "Admin")]
+        [Authorize(Roles = "Admin,Mechanic")]
         public async Task<IActionResult> Delete(int id)
         {
             try
