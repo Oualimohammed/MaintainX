@@ -1,7 +1,9 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Pri.Ek2.Core.Data;
 using Pri.Ek2.Core.Dtos.AuthDtos;
 using Pri.Ek2.Core.Dtos.ResponseDtos;
 using Pri.Ek2.Core.Services.Interfaces;
+using Pri.Ek2.Core.Entities;
 
 
 namespace Pri.Ek2.Core.Services.Implementations
@@ -10,11 +12,16 @@ namespace Pri.Ek2.Core.Services.Implementations
     {
         private readonly ITokenService _tokenService;
         private readonly UserManager<IdentityUser> _userManager;
+        private readonly ApplicationDbContext _applicationDbContext;
 
-        public AuthService(ITokenService tokenService, UserManager<IdentityUser> userManager)
+        public AuthService(
+            ITokenService tokenService,
+            UserManager<IdentityUser> userManager,
+            ApplicationDbContext applicationDbContext)
         {
             _tokenService = tokenService;
             _userManager = userManager;
+            _applicationDbContext = applicationDbContext;
         }
 
         public async Task<AuthResponseDto> LoginAsync(LoginRequestDto loginRequestDto)
@@ -45,13 +52,33 @@ namespace Pri.Ek2.Core.Services.Implementations
 
         public async Task<AuthResponseDto> RegisterAsync(RegisterRequestDto registerRequestDto)
         {
-            var user = new IdentityUser { UserName = registerRequestDto.Email, Email = registerRequestDto.Email };
+            var user = new IdentityUser
+            {
+                UserName = registerRequestDto.Email,
+                Email = registerRequestDto.Email
+            };
+
             var result = await _userManager.CreateAsync(user, registerRequestDto.Password);
             if (!result.Succeeded)
                 throw new Exception(string.Join(", ", result.Errors.Select(e => e.Description)));
 
-            // Voeg standaard rol toe, bv "User"
-            await _userManager.AddToRoleAsync(user, "User");
+            // Voeg rol toe
+            var role = string.IsNullOrEmpty(registerRequestDto.Role) ? "User" : registerRequestDto.Role;
+            await _userManager.AddToRoleAsync(user, role);
+
+            // Voeg UserProfile toe aan database
+            var profile = new UserProfile
+            {
+                UserId = user.Id,
+                Email = user.Email,
+                FirstName = registerRequestDto.FirstName,
+                LastName = registerRequestDto.LastName,
+                BirthData = registerRequestDto.BirthDate,
+                ProfileImagePath = "images/default.png"
+            };
+
+            _applicationDbContext.UserProfiles.Add(profile);
+            await _applicationDbContext.SaveChangesAsync();
 
             var roles = await _userManager.GetRolesAsync(user);
 
@@ -61,10 +88,11 @@ namespace Pri.Ek2.Core.Services.Implementations
                 Expiration = DateTime.Now.AddHours(2),
                 UserProfile = new UserProfileResponseDto
                 {
-                    Email = user.Email,
-                    FirstName = registerRequestDto.FirstName,
-                    LastName = registerRequestDto.LastName,
-                    BirthData = registerRequestDto.BirthDate
+                    Email = profile.Email,
+                    FirstName = profile.FirstName,
+                    LastName = profile.LastName,
+                    BirthData = profile.BirthData,
+                    ProfileImagePath = profile.ProfileImagePath
                 }
             };
         }
