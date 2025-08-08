@@ -3,3 +3,12 @@
 @inject IJSRuntime JSRuntime
 
 <h3>Voertuigen</h3>
+    <input class="form-control w-50" placeholder="Zoek op kenteken, model, type..." @bind="searchTerm" />
+    private List<VehicleResponseDto> filteredVehicles => string.IsNullOrWhiteSpace(searchTerm)
+        ? vehicles
+        : vehicles.Where(v =>
+            (v.LicensePlate?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (v.Model?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            GetVehicleTypeDisplay(v.Type).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+        ).ToList();
+    private string searchTerm = "";
