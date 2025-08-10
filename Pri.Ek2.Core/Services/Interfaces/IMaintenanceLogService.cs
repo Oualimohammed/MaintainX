@@ -17,5 +17,6 @@ namespace Pri.Ek2.Core.Services.Interfaces
         Task DeleteAsync(int id);
         // Optioneel:
         Task<IEnumerable<MaintenanceLogResponseDto>> GetLogsByVehicleAsync(int vehicleId);
+        Task AddAttachmentAsync(int logId, string filePath); 
     }
 }
