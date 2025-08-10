@@ -1,6 +1,7 @@
 ﻿@page "/register"
 @inject IAuthService AuthService
 @inject NavigationManager Navigation
+@attribute [Authorize(Roles = "Admin")]
 
 <div class="login-container">
     <div class="login-card">
@@ -16,6 +17,13 @@
                 <div class="alert alert-danger alert-dismissible fade show">
                     @errorMessage
                     <button type="button" class="btn-close" @onclick="() => errorMessage = null"></button>
+                </div>
+            }
+            @if (!string.IsNullOrEmpty(successMessage))
+            {
+                <div class="alert alert-success alert-dismissible fade show">
+                    @successMessage
+                    <button type="button" class="btn-close" @onclick="() => successMessage = null"></button>
                 </div>
             }
 
@@ -52,6 +60,14 @@
                     <ValidationMessage For="@(() => registerModel.Password)" />
                 </div>
 
+                <div class="mb-3">
+                    <label>Rol</label>
+                    <select class="form-select" @bind="registerModel.Role" required>
+                        <option value="">-- Kies rol --</option>
+                        <option value="Mechanic">Mechanic</option>
+                        <option value="Admin">Admin</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn btn-primary w-100 py-2 mb-3" disabled="@isLoading">
                     @if (isLoading)
                     {
@@ -67,11 +83,6 @@
                 </button>
             </EditForm>
         </div>
-
-        <div class="card-footer text-center py-3">
-            <span class="text-muted">Al een account?</span>
-            <a href="/login" class="text-link ms-2">Log in</a>
-        </div>
     </div>
 </div>
 
@@ -82,16 +93,19 @@
     };
     private bool isLoading = false;
     private string? errorMessage;
+    private string? successMessage;
 
     private async Task HandleRegister()
     {
         isLoading = true;
         errorMessage = null;
+        successMessage = null;
 
         try
         {
             var response = await AuthService.RegisterAsync(registerModel);
-            Navigation.NavigateTo("/login");
+            successMessage = "Gebruiker succesvol aangemaakt!";
+            registerModel = new RegisterRequestDto { BirthDate = DateTime.Today };
         }
         catch (Exception ex)
         {
