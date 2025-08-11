@@ -139,5 +139,69 @@ namespace Pri.Ek2.Api.Controllers
                 return StatusCode(500, $"Interne serverfout: {ex.Message}");
             }
         }
+
+        [HttpPost("{logId}/attachments")]
+        public async Task<IActionResult> UploadAttachment(int logId, IFormFile file)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                    return BadRequest("Geen bestand ontvangen");
+
+                // Bestand opslaan in wwwroot/uploads/maintenance/{logId}/
+                var uploadsDir = Path.Combine(_hostEnvironment.WebRootPath, "uploads", "maintenance", logId.ToString());
+                if (!Directory.Exists(uploadsDir))
+                    Directory.CreateDirectory(uploadsDir);
+
+                // Unieke bestandsnaam maken
+                var safeFileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
+                var filePath = Path.Combine(uploadsDir, safeFileName);
+
+                await using (var stream = new FileStream(filePath, FileMode.Create))
+                {
+                    await file.CopyToAsync(stream);
+                }
+
+                // Log ophalen
+                var log = await _maintenanceService.GetByIdAsync(logId);
+                if (log == null) return NotFound("Log niet gevonden");
+
+                // Het nieuwe pad toevoegen aan AttachmentPaths
+                var relativePath = $"/uploads/maintenance/{logId}/{safeFileName}";
+
+                // Omdat log.AttachmentPaths waarschijnlijk een IEnumerable is, kopieer naar lijst
+                var attachmentPaths = log.AttachmentPaths?.ToList() ?? new List<string>();
+
+                // Toevoegen nieuw bestandspad
+                attachmentPaths.Add(relativePath);
+
+                // Nieuwe update dto maken met het bijgewerkte AttachmentPaths
+                var updateDto = new MaintenanceLogRequestDto
+                {
+                    VehicleId = log.VehicleId,
+                    MaintenanceDate = log.MaintenanceDate,
+                    Description = log.Description,
+                    Status = log.Status,
+                    IsScheduled = log.IsScheduled,
+                    AttachmentPaths = attachmentPaths
+                };
+
+                // Log updaten met nieuwe bijlage
+                await _maintenanceService.UpdateAsync(logId, updateDto);
+
+                // Resultaat teruggeven
+                return Ok(new
+                {
+                    FileName = safeFileName,
+                    OriginalName = file.FileName,
+                    Path = relativePath,
+                    Size = file.Length
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Interne serverfout: {ex.Message}");
+            }
+        }
     }
 }
