@@ -1,0 +1,81 @@
+﻿@page "/admin/users"
+@inject IUserService UserService
+@inject AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager Navigation
+
+@code {
+    private List<UserDto> users = new();
+    private string? selectedUserId;
+    private string? newPassword;
+    private string? message;
+    private bool isAdmin;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdmin = user.IsInRole("Admin");
+
+        if (!isAdmin)
+        {
+            Navigation.NavigateTo("/");
+            return;
+        }
+
+        users = await UserService.GetAllUsersAsync();
+    }
+
+    private async Task ResetPassword()
+    {
+        if (string.IsNullOrWhiteSpace(selectedUserId) || string.IsNullOrWhiteSpace(newPassword))
+        {
+            message = "Vul alle velden in.";
+            return;
+        }
+
+        try
+        {
+            await UserService.ResetPasswordAsync(new ResetPasswordRequestDto
+            {
+                UserId = selectedUserId,
+                NewPassword = newPassword
+            });
+            message = $"Wachtwoord succesvol gereset.";
+            newPassword = null;
+        }
+        catch (Exception ex)
+        {
+            message = $"Fout: {ex.Message}";
+        }
+    }
+}
+
+<h3>Gebruikersbeheer (Admin)</h3>
+
+@if (!isAdmin)
+{
+    <p>Je hebt geen toegang tot deze pagina.</p>
+}
+else
+{
+    <div class="mb-4">
+        <label>Gebruiker:</label>
+        <select @bind="selectedUserId" class="form-select">
+            <option value="">Selecteer gebruiker</option>
+            @foreach (var user in users)
+            {
+                <option value="@user.UserId">@user.Email (@user.FirstName @user.LastName)</option>
+            }
+        </select>
+    </div>
+    <div class="mb-4">
+        <label>Nieuw wachtwoord:</label>
+        <input type="password" class="form-control" @bind="newPassword" />
+    </div>
+    <button class="btn btn-primary" @onclick="ResetPassword">Reset wachtwoord</button>
+
+    @if (!string.IsNullOrEmpty(message))
+    {
+        <div class="alert alert-info mt-3">@message</div>
+    }
+}
