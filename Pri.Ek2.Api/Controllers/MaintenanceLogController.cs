@@ -94,5 +94,50 @@ namespace Pri.Ek2.Api.Controllers
                 return NotFound($"Log {id} niet gevonden.");
             }
         }
+
+        [HttpGet("{logId}/download")]
+        public async Task<IActionResult> DownloadFile(int logId, [FromQuery] string fileName)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(fileName))
+                    return BadRequest("Bestandsnaam ontbreekt.");
+
+                var log = await _maintenanceService.GetByIdAsync(logId);
+                if (log == null) return NotFound("Log niet gevonden");
+
+                // Debug output
+                Console.WriteLine($"📄 Opgevraagde bestandsnaam: {fileName}");
+                Console.WriteLine($"📂 AttachmentPaths in DB: {string.Join(", ", log.AttachmentPaths ?? new List<string>())}");
+                Console.WriteLine($"🌐 WebRootPath: {_hostEnvironment.WebRootPath}");
+
+                var filePath = log.AttachmentPaths?
+                    .FirstOrDefault(p => Path.GetFileName(p).Equals(fileName, StringComparison.OrdinalIgnoreCase));
+
+                if (filePath == null)
+                    return NotFound("Bestand niet gevonden bij deze log");
+
+                var relativePath = filePath.Replace("\\", "/").TrimStart('/');
+                var fullPath = Path.Combine(_hostEnvironment.WebRootPath, relativePath);
+
+                Console.WriteLine($"📌 Gebouwd pad: {fullPath}");
+
+                if (!System.IO.File.Exists(fullPath))
+                    return NotFound($"Bestand niet gevonden op server: {fullPath}");
+
+                var provider = new FileExtensionContentTypeProvider();
+                if (!provider.TryGetContentType(fullPath, out var contentType))
+                {
+                    contentType = "application/octet-stream";
+                }
+
+                var fileStream = System.IO.File.OpenRead(fullPath);
+                return File(fileStream, contentType, Path.GetFileName(fullPath));
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Interne serverfout: {ex.Message}");
+            }
+        }
     }
 }
