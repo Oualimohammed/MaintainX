@@ -20,4 +20,8 @@
     <ProjectReference Include="..\Pri.Ek2.Core\Pri.Ek2.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="wwwroot\uploads\maintenance\" />
+  </ItemGroup>
+
 </Project>
