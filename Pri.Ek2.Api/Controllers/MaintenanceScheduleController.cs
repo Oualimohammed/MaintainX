@@ -42,6 +42,23 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
+        [HttpGet("vehicle/{vehicleId}")]
+        [AllowAnonymous]
+        public async Task<ActionResult<IEnumerable<MaintenanceScheduleResponseDto>>> GetByVehicle(int vehicleId)
+        {
+            var schedules = await _maintenanceScheduleService.GetByVehicleAsync(vehicleId);
+            return Ok(schedules);
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<MaintenanceScheduleResponseDto>> Add([FromBody] MaintenanceScheduleRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            var created = await _maintenanceScheduleService.AddAsync(dto);
+            return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
+        }
         
     }
 }
