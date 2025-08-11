@@ -1,0 +1,46 @@
+﻿<div class="card shadow-sm h-100">
+    <div class="card-header bg-primary text-white">
+        <h5 class="mb-0">
+            <i class="bi bi-list-check me-1"></i> Prioriteitstaken
+        </h5>
+    </div>
+    <div class="card-body">
+        @if (Tasks.Any())
+        {
+            <ul class="list-unstyled mb-0">
+                @foreach (var task in Tasks)
+                {
+                    <li class="mb-2 p-2 border-bottom">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">@task.Title</div>
+                                <small class="text-muted">@task.DueDate.ToString("dd-MM")</small>
+                            </div>
+                            <span class="badge @GetPriorityBadge(task.Priority)">
+                                @task.Priority
+                            </span>
+                        </div>
+                    </li>
+                }
+            </ul>
+        }
+        else
+        {
+            <div class="text-center text-muted">
+                <i class="bi bi-check2-circle" style="font-size: 1.5rem;"></i>
+                <p class="mt-2 mb-0">Geen openstaande taken</p>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+   
+    [Parameter]
+    public Func<string, string> GetPriorityBadge { get; set; } = _ => "badge bg-secondary";
+
+
+    [Parameter]
+    public IEnumerable<(string Title, DateTime DueDate, string Priority)> Tasks { get; set; }
+    = Enumerable.Empty<(string, DateTime, string)>();
+}
