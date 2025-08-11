@@ -26,5 +26,8 @@ namespace Pri.Ek2.Core.Dtos.AuthDtos
         [Required]
         [DataType(DataType.Date)]
         public DateTime BirthDate { get; set; }
+
+        [Required]
+        public string Role { get; set; }
     }
 }
