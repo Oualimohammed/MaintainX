@@ -17,12 +17,10 @@ namespace Pri.Ek2.Core.Data
 
             // 1. Seed rollen
             if (!await roleManager.RoleExistsAsync("Admin"))
-            {
                 await roleManager.CreateAsync(new IdentityRole("Admin"));
-                await roleManager.CreateAsync(new IdentityRole("User"));
-                await userManager.CreateAsync(new IdentityUser
-                    ("Mechanic"));
-            }
+
+            if (!await roleManager.RoleExistsAsync("Mechanic"))
+                await roleManager.CreateAsync(new IdentityRole("Mechanic"));
 
             // 2. Seed standaardgebruikers
             if (!context.Users.Any())
@@ -36,14 +34,6 @@ namespace Pri.Ek2.Core.Data
                 await userManager.CreateAsync(adminUser, "AdminPassword123!");
                 await userManager.AddToRoleAsync(adminUser, "Admin");
 
-                var normalUser = new IdentityUser
-                {
-                    UserName = "user@example.com",
-                    Email = "user@example.com",
-                    EmailConfirmed = true
-                };
-                await userManager.CreateAsync(normalUser, "UserPassword123!");
-                await userManager.AddToRoleAsync(normalUser, "User");
 
                 var mechanicUser = new IdentityUser
                 {
@@ -65,15 +55,7 @@ namespace Pri.Ek2.Core.Data
                         Email = adminUser.Email,
                         ProfileImagePath = "images/admin.png"
                     },
-                    new UserProfile
-                    {
-                        UserId = normalUser.Id,
-                        FirstName = "Normal",
-                        LastName = "User",
-                        BirthData = new DateTime(1990, 1, 1),
-                        Email = normalUser.Email,
-                        ProfileImagePath = "images/user.png"
-                    },
+               
                     new UserProfile
                     {
                         UserId = mechanicUser.Id,
@@ -93,52 +75,19 @@ namespace Pri.Ek2.Core.Data
                 context.Vehicles.AddRange(
                     new Vehicle { LicensePlate = "ABC123", Model = "Toyota Prius", Type = VehicleType.Hybrid, EmissionFactor = 0.089m },
                     new Vehicle { LicensePlate = "XYZ789", Model = "Tesla Model 3", Type = VehicleType.Electric, EmissionFactor = 0.0m },
-                    new Vehicle { LicensePlate = "LMN456", Model = "Ford F-150", Type = VehicleType.Gasoline, EmissionFactor = 0.250m }
+                    new Vehicle { LicensePlate = "LMN456", Model = "Ford F-150", Type = VehicleType.Gasoline, EmissionFactor = 0.250m },
+                    new Vehicle { LicensePlate = "DEF321", Model = "Honda Accord", Type = VehicleType.Hybrid, EmissionFactor = 0.080m },
+                    new Vehicle { LicensePlate = "GHI654", Model = "Chevrolet Bolt", Type = VehicleType.Electric, EmissionFactor = 0.0m },
+                    new Vehicle { LicensePlate = "JKL987", Model = "Volkswagen Golf", Type = VehicleType.Gasoline, EmissionFactor = 0.120m },
+                    new Vehicle { LicensePlate = "MNO234", Model = "Nissan Leaf", Type = VehicleType.Electric, EmissionFactor = 0.0m },
+                    new Vehicle { LicensePlate = "PQR567", Model = "BMW i3", Type = VehicleType.Electric, EmissionFactor = 0.0m },
+                    new Vehicle { LicensePlate = "STU890", Model = "Audi A3", Type = VehicleType.Hybrid, EmissionFactor = 0.075m },
+                    new Vehicle { LicensePlate = "VWX345", Model = "Mercedes-Benz C-Class", Type = VehicleType.Gasoline, EmissionFactor = 0.150m },
+                    new Vehicle { LicensePlate = "YZA678", Model = "Hyundai Kona Electric", Type = VehicleType.Electric, EmissionFactor = 0.0m }
                 );
                 await context.SaveChangesAsync();
             }
 
-            // 4. Seed locaties
-            if (!context.Locations.Any())
-            {
-                context.Locations.AddRange(
-                    new Location
-                    {
-                        Name = "Howest Brugge",
-                        Address = "Rijselstraat 5, 8200 Brugge",
-                        Latitude = 51.1874,
-                        Longitude = 3.2162
-                    },
-                    new Location
-                    {
-                        Name = "Howest Kortrijk",
-                        Address = "Graaf Karel de Goedelaan 5, 8500 Kortrijk",
-                        Latitude = 50.8237,
-                        Longitude = 3.2642
-                    }
-                );
-                await context.SaveChangesAsync();
-            }
-
-            // 5. Seed transportroutes
-            if (!context.TransportRoutes.Any() && context.Vehicles.Any() && context.Locations.Any())
-            {
-                var vehicles = context.Vehicles.ToList();
-                var locations = context.Locations.ToList();
-
-                context.TransportRoutes.AddRange(
-                    new TransportRoute
-                    {
-                        StartLocationId = locations[0].Id,
-                        EndLocationId = locations[1].Id,
-                        DistanceKm = 45.7m,
-                        EstimatedEmissionsKg = vehicles[0].EmissionFactor * 45.7m,
-                        VehicleId = vehicles[0].Id,
-                        ProofPath = "routes/route1.pdf"
-                    }
-                );
-                await context.SaveChangesAsync();
-            }
 
             // 6. Seed onderhoudslogs (moet na voertuigen)
             if (!context.MaintenanceLogs.Any() && context.Vehicles.Any())
@@ -156,46 +105,100 @@ namespace Pri.Ek2.Core.Data
                         VehicleId = 3,
                         MaintenanceDate = DateTime.Now.AddMonths(-2),
                         Description = "Bandenspanning aangepast"
-                    }
-                );
-            }
-
-            // 7. Seed emissiedoelen (moet na users)
-            if (!context.EmissionGoals.Any() && context.UserProfiles.Any())
-            {
-                var user = context.UserProfiles.First();
-                context.EmissionGoals.Add(
-                    new EmissionGoal
-                    {
-                        UserId = user.UserId,
-                        TargetEmissionsKg = 100,
-                        StartDate = new DateTime(2024, 1, 1),
-                        EndDate = new DateTime(2024, 12, 31),
-                        CurrentEmissionsKg = 45
-                    }
-                );
-            }
-
-            // 8. Seed beloningen
-            if (!context.Rewards.Any())
-            {
-                context.Rewards.AddRange(
-                    new Reward
-                    {
-                        Name = "Groene Reisder",
-                        Description = "Minder dan 50kg CO2 uitstoot deze maand",
-                        IconPath = "rewards/green.png"
                     },
-                    new Reward
+                    new MaintenanceLog
                     {
-                        Name = "Elektrische Kampioen",
-                        Description = "10 ritten met een elektrisch voertuig",
-                        IconPath = "rewards/electric.png"
+                        VehicleId = 2,
+                        MaintenanceDate = DateTime.Now.AddMonths(-3),
+                        Description = "Software update uitgevoerd",
+                        NewEmissionFactor = 0.0m
+                    },
+                    new MaintenanceLog
+                    {
+                        VehicleId = 4,
+                        MaintenanceDate = DateTime.Now.AddMonths(-1),
+                        Description = "Remmen gecontroleerd",
+                        NewEmissionFactor = 0.078m
+                    },
+                    new MaintenanceLog
+                    {
+                        VehicleId = 5,
+                        MaintenanceDate = DateTime.Now.AddMonths(-2),
+                        Description = "Accu gereviseerd",
+                        NewEmissionFactor = 0.0m
+                    },
+                    new MaintenanceLog
+                    {
+                        VehicleId = 6,
+                        MaintenanceDate = DateTime.Now.AddMonths(-1),
+                        Description = "Motor gerepareerd",
+                        NewEmissionFactor = 0.115m
+                    },
+                    new MaintenanceLog
+                    {
+                        VehicleId = 7,
+                        MaintenanceDate = DateTime.Now.AddMonths(-3),
+                        Description = "Banden vervangen",
+                        NewEmissionFactor = 0.0m
+                    },
+                    new MaintenanceLog
+                    {
+                        VehicleId = 8,
+                        MaintenanceDate = DateTime.Now.AddMonths(-2),
+                        Description = "Software update uitgevoerd",
+                        NewEmissionFactor = 0.0m
+                    },
+                    new MaintenanceLog
+                    {
+                        VehicleId = 9,
+                        MaintenanceDate = DateTime.Now.AddMonths(-1),
+                        Description = "Remmen gecontroleerd",
+                        NewEmissionFactor = 0.072m
+                    },
+                    new MaintenanceLog
+                    {
+                        VehicleId = 10,
+                        MaintenanceDate = DateTime.Now.AddMonths(-2),
+                        Description = "Olie vervangen",
+                        NewEmissionFactor = 0.145m
+                    },
+                    new MaintenanceLog
+                    {
+                        VehicleId = 11,
+                        MaintenanceDate = DateTime.Now.AddMonths(-1),
+                        Description = "Accu gereviseerd",
+                        NewEmissionFactor = 0.0m
                     }
                 );
             }
 
-            await context.SaveChangesAsync();
+            // 6. Seed onderhoudsschema's (moet na voertuigen)
+            if (!context.MaintenanceSchedules.Any() && context.Vehicles.Any())
+            {
+                context.MaintenanceSchedules.AddRange(
+                    new MaintenanceSchedule
+                    {
+                        VehicleId = 1,
+                        LastMaintenanceDate = DateTime.Now.AddMonths(-3),
+                        NextMaintenanceDueDate = DateTime.Now.AddMonths(3),
+                        MileageAtLastMaintenance = 20000,
+                        NextMaintenanceMileage = 30000,
+                        Status = "Pending",
+                        Notes = "Standaard onderhoud"
+                    },
+                    new MaintenanceSchedule
+                    {
+                        VehicleId = 2,
+                        LastMaintenanceDate = DateTime.Now.AddMonths(-1),
+                        NextMaintenanceDueDate = DateTime.Now.AddMonths(5),
+                        MileageAtLastMaintenance = 10000,
+                        NextMaintenanceMileage = 20000,
+                        Status = "Pending",
+                        Notes = "Elektrisch voertuig"
+                    }
+                );
+                await context.SaveChangesAsync();
+            }
         }
     }
 }

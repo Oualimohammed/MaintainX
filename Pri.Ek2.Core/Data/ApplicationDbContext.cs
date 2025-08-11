@@ -7,15 +7,10 @@ namespace Pri.Ek2.Core.Data
 {
     public class ApplicationDbContext : IdentityDbContext<IdentityUser>
     {
-        public DbSet<TransportRoute> TransportRoutes { get; set; }
         public DbSet<Vehicle> Vehicles { get; set; }
-        public DbSet<Location> Locations { get; set; }
         public DbSet<UserProfile> UserProfiles { get; set; }
-        public DbSet<EmissionGoal> EmissionGoals { get; set; }
-        public DbSet<EmissionReport> EmissionReports { get; set; }
         public DbSet<MaintenanceLog> MaintenanceLogs { get; set; }
-        public DbSet<Reward> Rewards { get; set; }
-
+        public DbSet<MaintenanceSchedule> MaintenanceSchedules { get; set; }
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options) { }
 
@@ -32,24 +27,6 @@ namespace Pri.Ek2.Core.Data
             modelBuilder.Entity<IdentityUserToken<string>>().ToTable("UserTokens");
             modelBuilder.Entity<IdentityRoleClaim<string>>().ToTable("RoleClaims");
 
-            // TransportRoute configuratie
-            modelBuilder.Entity<TransportRoute>()
-                .HasOne(tr => tr.Vehicle)
-                .WithMany(v => v.TransportRoutes)
-                .HasForeignKey(tr => tr.VehicleId);
-
-            modelBuilder.Entity<TransportRoute>()
-                .HasOne(tr => tr.StartLocation)
-                .WithMany(l => l.StartRoutes)
-                .HasForeignKey(tr => tr.StartLocationId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-            modelBuilder.Entity<TransportRoute>()
-                .HasOne(tr => tr.EndLocation)
-                .WithMany(l => l.EndRoutes)
-                .HasForeignKey(tr => tr.EndLocationId)
-                .OnDelete(DeleteBehavior.Restrict);
-
             // UserProfile configuratie
             modelBuilder.Entity<UserProfile>()
                 .HasOne(up => up.IdentityUser)
@@ -63,21 +40,14 @@ namespace Pri.Ek2.Core.Data
                 .WithMany(v => v.MaintenanceLogs)
                 .HasForeignKey(ml => ml.VehicleId);
 
-            // EmissionGoal configuratie
-            modelBuilder.Entity<EmissionGoal>()
-                .HasOne(eg => eg.UserProfile)
-                .WithMany(up => up.EmissionGoals)
-                .HasForeignKey(eg => eg.UserId)
-                .HasPrincipalKey(up => up.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            // ✅ Precision voor decimal velden
+            modelBuilder.Entity<Vehicle>()
+                .Property(v => v.EmissionFactor)
+                .HasPrecision(10, 5);
 
-            // EmissionReport configuratie
-            modelBuilder.Entity<EmissionReport>()
-                .HasOne(er => er.UserProfile)
-                .WithMany(up => up.EmissionReports)
-                .HasForeignKey(er => er.UserId)
-                .HasPrincipalKey(up => up.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<MaintenanceLog>()
+                .Property(ml => ml.NewEmissionFactor)
+                .HasPrecision(10, 5);
         }
     }
 }
