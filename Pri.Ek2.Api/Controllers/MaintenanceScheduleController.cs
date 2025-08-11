@@ -59,7 +59,44 @@ namespace Pri.Ek2.Api.Controllers
             var created = await _maintenanceScheduleService.AddAsync(dto);
             return CreatedAtAction(nameof(GetById), new { id = created.Id }, created);
         }
-        
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<MaintenanceScheduleResponseDto>> Update(int id, [FromBody] MaintenanceScheduleRequestDto dto)
+        {
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            try
+            {
+                var updated = await _maintenanceScheduleService.UpdateAsync(id, dto);
+                return Ok(updated);
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Onderhoudsschema {id} niet gevonden.");
+            }
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _maintenanceScheduleService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Onderhoudsschema {id} niet gevonden.");
+            }
+        }
+
+        [HttpGet("mechanic/{mechanicId}")]
+        public async Task<ActionResult<IEnumerable<MaintenanceScheduleResponseDto>>> GetByMechanic(string mechanicId)
+        {
+            var schedules = await _maintenanceScheduleService.GetSchedulesByMechanicAsync(mechanicId);
+            return Ok(schedules);
+        }
     }
 }
 
