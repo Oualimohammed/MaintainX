@@ -13,5 +13,10 @@ namespace Pri.Ek2.Core.Dtos.ResponseDtos
         public DateTime MaintenanceDate { get; set; }
         public string Description { get; set; }
         public decimal? NewEmissionFactor { get; set; }
+        public int? MileageAtMaintenance { get; set; }
+        public List<string>? AttachmentPaths { get; set; }
+        public string? Status { get; set; }
+        public bool IsScheduled { get; set; }
+
     }
 }
