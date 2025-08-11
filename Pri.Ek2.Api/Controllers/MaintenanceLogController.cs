@@ -81,5 +81,18 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await _maintenanceService.DeleteAsync(id);
+                return NoContent();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound($"Log {id} niet gevonden.");
+            }
+        }
     }
 }
