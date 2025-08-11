@@ -42,6 +42,7 @@ namespace Pri.Ek2.Api.Controllers
             }
         }
 
+        [Authorize(Roles = "Admin")]
         [HttpPost]
         public async Task<ActionResult<UserProfileResponseDto>> Create([FromBody] UserProfileRequestDto dto)
         {
