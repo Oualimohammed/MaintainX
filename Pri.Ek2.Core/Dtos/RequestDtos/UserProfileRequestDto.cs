@@ -10,7 +10,7 @@ namespace Pri.Ek2.Core.Dtos.RequestDtos
     public class UserProfileRequestDto
     {
         [Required]
-        public int UserId { get; set; }
+        public string UserId { get; set; }
 
         [Required]
         public string FirstName { get; set; }
