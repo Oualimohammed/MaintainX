@@ -1,0 +1,196 @@
+﻿@page "/user-profile"
+@inject IUserProfileService UserProfileService
+@inject AuthenticationStateProvider AuthProvider
+
+<h3>Mijn Profiel</h3>
+
+@if (isLoading)
+{
+    <p>Laden...</p>
+}
+else if (!string.IsNullOrEmpty(errorMessage))
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (profile != null)
+{
+    <EditForm Model="editModel" OnValidSubmit="HandleValidSubmit">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <!-- Profielafbeelding -->
+        <div class="mb-3 text-center">
+            <img src="@GetImage()" alt="Profielfoto" style="max-width: 150px; border-radius: 50%;" />
+        </div>
+
+        <!-- Invoer velden -->
+        <div class="mb-3">
+            <label>Voornaam</label>
+            <InputText @bind-Value="editModel.FirstName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label>Achternaam</label>
+            <InputText @bind-Value="editModel.LastName" class="form-control" />
+        </div>
+        <div class="mb-3">
+            <label>Geboortedatum</label>
+            <InputDate @bind-Value="editModel.BirthData" class="form-control" />
+        </div>
+        <div class="mb-3 text-center">
+            <label class="btn btn-outline-primary">
+                Kies profielfoto
+                <InputFile OnChange="HandleFileSelected" style="display:none" accept="image/*" />
+            </label>
+        </div>
+
+        <button class="btn btn-primary" type="submit">Opslaan</button>
+    </EditForm>
+
+    @if (!string.IsNullOrEmpty(successMessage))
+    {
+        <div class="alert alert-success mt-3">@successMessage</div>
+    }
+}
+else
+{
+    <p>Geen profiel gevonden.</p>
+}
+
+@code {
+    private UserProfileResponseDto? profile;
+    private UserProfileRequestDto editModel = new();
+    private string? errorMessage;
+    private string? successMessage;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var auth = await AuthProvider.GetAuthenticationStateAsync();
+            var userId = auth.User?.FindFirst(c => c.Type == "sub")?.Value;
+
+            if (!string.IsNullOrEmpty(userId))
+            {
+                try
+                {
+                    profile = await UserProfileService.GetUserProfileAsync(userId);
+
+                    if (profile != null)
+                    {
+                        editModel = new UserProfileRequestDto
+                        {
+                            UserId = userId,
+                            FirstName = profile.FirstName,
+                            LastName = profile.LastName,
+                            BirthData = profile.BirthData,
+                            ProfileImagePath = profile.ProfileImagePath
+                        };
+                    }
+                }
+                catch (HttpRequestException httpEx)
+                {
+                    if (httpEx.Message.Contains("404"))
+                    {
+                        // Profiel bestaat nog niet — laat leeg formulier zien
+                        profile = new UserProfileResponseDto { UserId = userId };
+                    }
+                    else
+                    {
+                        errorMessage = $"Fout bij laden profiel: {httpEx.Message}";
+                    }
+                }
+
+
+                editModel = new UserProfileRequestDto
+                {
+                    UserId = userId,
+                    FirstName = profile.FirstName,
+                    LastName = profile.LastName,
+                    BirthData = profile.BirthData,
+                    ProfileImagePath = profile.ProfileImagePath
+                };
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij het laden: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        try
+        {
+            // TODO: upload base64-image of file naar server en krijg een URL terug
+            // Voor nu: we slaan gewoon de base64 in database (kan, maar niet ideaal in productie)
+
+            if (string.IsNullOrEmpty(profile.FirstName))
+            {
+                // Profiel bestaat nog niet → Create
+                await UserProfileService.CreateUserProfileAsync(editModel.UserId, editModel);
+            }
+            else
+            {
+                await UserProfileService.UpdateUserProfileAsync(profile.UserId, editModel);
+            }
+            errorMessage = null;
+            successMessage = "Profiel succesvol opgeslagen!";
+            profile.ProfileImagePath = editModel.ProfileImagePath;
+        }
+        catch (Exception ex)
+        {
+            successMessage = null;
+            errorMessage = $"Fout bij opslaan: {ex.Message}";
+        }
+    }
+
+    private async Task HandleFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+
+        if (file != null)
+        {
+            // Optioneel: beperk bestandsgrootte bv max 2MB
+            if (file.Size > 2 * 1024 * 1024)
+            {
+                errorMessage = "Bestand is te groot, maximaal 2 MB.";
+                return;
+            }
+
+            try
+            {
+                errorMessage = null;
+
+                // Lees de file in een buffer
+                var buffer = new byte[file.Size];
+                await file.OpenReadStream(2 * 1024 * 1024).ReadAsync(buffer);
+
+                // Zet om naar Base64 string om als preview te tonen
+                var base64Image = $"data:{file.ContentType};base64,{Convert.ToBase64String(buffer)}";
+
+                // Zet die base64-string tijdelijk in je model om te tonen als preview
+                editModel.ProfileImagePath = base64Image;
+            }
+            catch (Exception ex)
+            {
+                errorMessage = $"Fout bij uploaden afbeelding: {ex.Message}";
+            }
+        }
+    }
+
+
+    private string GetImage()
+    {
+        if (!string.IsNullOrEmpty(editModel.ProfileImagePath))
+        {
+            return editModel.ProfileImagePath;
+        }
+
+        return "images/default-avatar.png"; 
+    }
+}
