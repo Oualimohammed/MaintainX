@@ -83,7 +83,20 @@
 - Uploaden van bestanden is beperkt tot **maximaal 10MB per bestand**
 - Autorisatie op basis van rollen voorkomt ongeautoriseerde toegang
 - Validatie van gegevens via data annotations in Blazor-formulieren
+- De Download overzicht (CSV) knop op het dashboard is momenteel nog niet geïmplementeerd. Dit zal in een volgende versie worden toegevoegd om gebruikers te helpen snel data te exporteren.
 
+🚀 Toekomstige uitbreidingen
+Dit project is een basisversie van een krachtig voertuigbeheerplatform en zal in de toekomst worden uitgebreid naar een grootschalig systeem met onder andere:
+
+- Geavanceerde AI-gebaseerde onderhoudsvoorspellingen
+
+- Integraties met IoT-sensoren voor real-time voertuigmonitoring
+
+- Mobiele apps voor monteurs en chauffeurs
+
+- Uitgebreide rapportage en analytics dashboards
+
+- Multi-tenant support voor grote wagenparken en fleet management bedrijven
 ---
 
 > Heb je vragen of feedback? Open een issue of neem contact op met de beheerder!
