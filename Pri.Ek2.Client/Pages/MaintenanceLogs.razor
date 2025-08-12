@@ -81,18 +81,25 @@
                                     <td>
                                         @if (log.AttachmentPaths != null && log.AttachmentPaths.Any())
                                         {
-                                            <div class="d-flex flex-wrap gap-1">
-                                                @foreach (var path in log.AttachmentPaths)
-                                                {
-                                                    var fileName = System.IO.Path.GetFileName(path);
-                                                    var ext = System.IO.Path.GetExtension(path).ToLower();
-                                                    <button class="btn btn-sm btn-outline-primary"
+                                            @foreach (var path in log.AttachmentPaths)
+                                            {
+                                                var fileName = System.IO.Path.GetFileName(path);
+                                                var ext = System.IO.Path.GetExtension(path).ToLower();
+
+                                                <span class="badge bg-light border text-dark px-2 py-1 d-flex align-items-center" style="font-size: 0.85rem;">
+                                                    <i class="@GetFileIconClass(ext) me-1"></i>
+                                                    <a href="javascript:void(0);"
+                                                       class="text-decoration-none me-2"
+                                                       @onclick="() => DownloadFile(log.Id, fileName)">
+                                                        @ShortenFileName(fileName, 15)
+                                                    </a>
+                                                    <button class="btn btn-sm btn-link text-primary p-0"
                                                             @onclick="() => DownloadFile(log.Id, fileName)"
-                                                            title="@fileName">
-                                                        <i class="@GetFileIconClass(ext) me-1"></i> @ShortenFileName(fileName, 15)
+                                                            title="Download @fileName">
+                                                        <i class="bi bi-download"></i>
                                                     </button>
-                                                }
-                                            </div>
+                                                </span>
+                                            }
                                         }
                                         else
                                         {
@@ -103,7 +110,7 @@
                                     <td class="text-end">
                                         <div class="btn-group btn-group-sm">
                                             <InputFile id="@($"fileInput-{log.Id}")" style="display: none;"
-                                                       OnChange="e => UploadFile(log.Id, e)" />
+                                                       OnChange="e => UploadFiles(log.Id, e)" multiple />
                                             <button class="btn btn-info"
                                                     @onclick='() => JsRuntime.InvokeVoidAsync("triggerFileInput", $"fileInput-{log.Id}")'
                                                     title="Bestand toevoegen">
@@ -220,23 +227,27 @@
         };
     }
 
-    private async Task UploadFile(int logId, InputFileChangeEventArgs e)
+    private async Task UploadFiles(int logId, InputFileChangeEventArgs e)
     {
-        var file = e.GetMultipleFiles().FirstOrDefault();
-        if (file == null) return;
+        var files = e.GetMultipleFiles();
+        if (!files.Any()) return;
 
         try
         {
             var content = new MultipartFormDataContent();
-            var fileContent = new StreamContent(file.OpenReadStream(10 * 1024 * 1024)); // Max 10MB
-            content.Add(fileContent, "file", file.Name);
+
+            foreach (var file in files)
+            {
+                var fileContent = new StreamContent(file.OpenReadStream(10 * 1024 * 1024)); // Max 10MB per bestand
+                content.Add(fileContent, "files", file.Name); 
+            }
 
             var response = await Http.PostAsync($"/api/MaintenanceLog/{logId}/attachments", content);
 
             if (response.IsSuccessStatusCode)
             {
                 await LoadData();
-                await JsRuntime.InvokeVoidAsync("alert", "Bestand succesvol geüpload!");
+                await JsRuntime.InvokeVoidAsync("alert", $"{files.Count} bestand(en) succesvol geüpload!");
             }
             else
             {
@@ -262,7 +273,8 @@
     private string ShortenFileName(string name, int maxLength)
     {
         if (name.Length <= maxLength) return name;
-        return name.Substring(0, maxLength) + "...";
+        var ext = Path.GetExtension(name);
+        return name.Substring(0, maxLength - ext.Length) + "..." + ext;
     }
 
 
