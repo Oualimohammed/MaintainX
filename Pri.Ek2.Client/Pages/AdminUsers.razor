@@ -9,6 +9,7 @@
     private string? newPassword;
     private string? message;
     private bool isAdmin;
+    private string? confirmPassword;
 
     protected override async Task OnInitializedAsync()
     {
@@ -32,6 +33,11 @@
             message = "Vul alle velden in.";
             return;
         }
+        if (newPassword != confirmPassword)
+            {
+            message = "wachtwoorden komen niet overeen.";
+            return;
+            }
 
         try
         {
@@ -42,6 +48,7 @@
             });
             message = $"Wachtwoord succesvol gereset.";
             newPassword = null;
+            confirmPassword = null;
         }
         catch (Exception ex)
         {
@@ -71,6 +78,10 @@ else
     <div class="mb-4">
         <label>Nieuw wachtwoord:</label>
         <input type="password" class="form-control" @bind="newPassword" />
+    </div>
+    <div class="mb-4">
+        <label>Bevestig nieuw wachtwoord:</label>
+        <input type="password" class="form-control" @bind="confirmPassword" />
     </div>
     <button class="btn btn-primary" @onclick="ResetPassword">Reset wachtwoord</button>
 
