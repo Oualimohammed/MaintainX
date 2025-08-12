@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.StaticFiles;
-using Microsoft.Extensions.Hosting;
-using Pri.Ek2.Core.Data;
 using Pri.Ek2.Core.Dtos.RequestDtos;
 using Pri.Ek2.Core.Dtos.ResponseDtos;
 using Pri.Ek2.Core.Services.Interfaces;
@@ -141,67 +139,51 @@ namespace Pri.Ek2.Api.Controllers
         }
 
         [HttpPost("{logId}/attachments")]
-        public async Task<IActionResult> UploadAttachment(int logId, IFormFile file)
+        public async Task<IActionResult> UploadAttachments(int logId, List<IFormFile> files)
         {
-            try
+            if (files == null || !files.Any())
+                return BadRequest("Geen bestanden ontvangen");
+
+            var uploadsDir = Path.Combine(_hostEnvironment.WebRootPath, "uploads", "maintenance", logId.ToString());
+            if (!Directory.Exists(uploadsDir))
+                Directory.CreateDirectory(uploadsDir);
+
+            var log = await _maintenanceService.GetByIdAsync(logId);
+            if (log == null) return NotFound("Log niet gevonden");
+
+            var attachmentPaths = log.AttachmentPaths?.ToList() ?? new List<string>();
+
+            foreach (var file in files)
             {
-                if (file == null || file.Length == 0)
-                    return BadRequest("Geen bestand ontvangen");
-
-                // Bestand opslaan in wwwroot/uploads/maintenance/{logId}/
-                var uploadsDir = Path.Combine(_hostEnvironment.WebRootPath, "uploads", "maintenance", logId.ToString());
-                if (!Directory.Exists(uploadsDir))
-                    Directory.CreateDirectory(uploadsDir);
-
-                // Unieke bestandsnaam maken
                 var safeFileName = $"{Guid.NewGuid()}{Path.GetExtension(file.FileName)}";
                 var filePath = Path.Combine(uploadsDir, safeFileName);
 
-                await using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
+                await using var stream = new FileStream(filePath, FileMode.Create);
+                await file.CopyToAsync(stream);
 
-                // Log ophalen
-                var log = await _maintenanceService.GetByIdAsync(logId);
-                if (log == null) return NotFound("Log niet gevonden");
-
-                // Het nieuwe pad toevoegen aan AttachmentPaths
                 var relativePath = $"/uploads/maintenance/{logId}/{safeFileName}";
-
-                // Omdat log.AttachmentPaths waarschijnlijk een IEnumerable is, kopieer naar lijst
-                var attachmentPaths = log.AttachmentPaths?.ToList() ?? new List<string>();
-
-                // Toevoegen nieuw bestandspad
                 attachmentPaths.Add(relativePath);
-
-                // Nieuwe update dto maken met het bijgewerkte AttachmentPaths
-                var updateDto = new MaintenanceLogRequestDto
-                {
-                    VehicleId = log.VehicleId,
-                    MaintenanceDate = log.MaintenanceDate,
-                    Description = log.Description,
-                    Status = log.Status,
-                    IsScheduled = log.IsScheduled,
-                    AttachmentPaths = attachmentPaths
-                };
-
-                // Log updaten met nieuwe bijlage
-                await _maintenanceService.UpdateAsync(logId, updateDto);
-
-                // Resultaat teruggeven
-                return Ok(new
-                {
-                    FileName = safeFileName,
-                    OriginalName = file.FileName,
-                    Path = relativePath,
-                    Size = file.Length
-                });
             }
-            catch (Exception ex)
+
+            var updateDto = new MaintenanceLogRequestDto
             {
-                return StatusCode(500, $"Interne serverfout: {ex.Message}");
-            }
+                VehicleId = log.VehicleId,
+                MaintenanceDate = log.MaintenanceDate,
+                Description = log.Description,
+                Status = log.Status,
+                IsScheduled = log.IsScheduled,
+                AttachmentPaths = attachmentPaths
+            };
+
+            await _maintenanceService.UpdateAsync(logId, updateDto);
+
+            return Ok(new
+            {
+                Count = files.Count,
+                TotalSize = files.Sum(f => f.Length),
+                Paths = attachmentPaths
+            });
         }
+
     }
 }
