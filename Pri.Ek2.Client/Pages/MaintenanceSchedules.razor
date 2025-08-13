@@ -1,0 +1,388 @@
+﻿@page "/maintenance-schedules"
+@attribute [Authorize(Roles = "Mechanic,Admin")]
+@inject IMaintenanceScheduleService ScheduleService
+@inject IMaintenanceLogService MaintenanceLogService
+@inject IVehicleService VehicleService
+@inject IJSRuntime JsRuntime
+@inject NavigationManager Navigation
+
+<PageTitle>Onderhoudsschema's</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="bi bi-calendar-check me-2"></i>Onderhoudsschema's</h3>
+        <div>
+            <button class="btn btn-primary me-2" @onclick="ShowAddForm">
+                <i class="bi bi-plus-circle"></i> Nieuw schema
+            </button>
+            <button class="btn btn-outline-secondary" @onclick="RefreshData">
+                <i class="bi bi-arrow-clockwise"></i> Vernieuwen
+            </button>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!schedules.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Geen onderhoudsschema's gevonden
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Voertuig</th>
+                                <th>Laatste onderhoud</th>
+                                <th>Volgende onderhoud</th>
+                                <th>Status</th>
+                                <th class="text-end">Acties</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var schedule in schedules.OrderBy(s => s.NextMaintenanceDueDate))
+                            {
+                                var vehicle = vehicles.FirstOrDefault(v => v.Id == schedule.VehicleId);
+                                var isOverdue = schedule.Status != "Completed" && schedule.NextMaintenanceDueDate < DateTime.Now;
+                                var isCompleted = schedule.Status == "Completed";
+
+                                <tr class="@(isCompleted ? "table-success" : isOverdue ? "table-warning" : "")">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div>
+                                                <strong>@(vehicle?.LicensePlate ?? "Onbekend")</strong>
+                                                <div class="text-muted small">@vehicle?.Model</div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <div>@schedule.LastMaintenanceDate.ToShortDateString()</div>
+                                        @if (schedule.MileageAtLastMaintenance.HasValue)
+                                        {
+                                            <small class="text-muted">@schedule.MileageAtLastMaintenance.Value.ToString("N0") km</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="@(isOverdue ? "fw-bold text-danger" : "")">
+                                            @schedule.NextMaintenanceDueDate.ToShortDateString()
+                                        </div>
+                                        @if (schedule.NextMaintenanceMileage.HasValue)
+                                        {
+                                            <small class="text-muted">@schedule.NextMaintenanceMileage.Value.ToString("N0") km</small>
+                                        }
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(schedule.Status)">
+                                            @GetStatusDisplay(schedule.Status)
+                                        </span>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            @if (!isCompleted)
+                                            {
+                                                <button class="btn btn-success"
+                                                        @onclick="() => CompleteMaintenance(schedule)"
+                                                        title="Markeer als voltooid">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                            }
+                                            <button class="btn btn-primary"
+                                                    @onclick="() => EditSchedule(schedule)"
+                                                    title="Bewerken">
+                                                <i class="bi bi-pencil"></i>
+                                            </button>
+                                            <button class="btn btn-danger"
+                                                    @onclick="() => DeleteSchedule(schedule.Id)"
+                                                    title="Verwijderen">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@if (isFormVisible)
+{
+    <div class="modal-backdrop show"></div>
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">@(editingId.HasValue ? "Schema bewerken" : "Nieuw schema")</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="HideForm"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="selectedSchedule" OnValidSubmit="OnScheduleSaved">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Voertuig <span class="text-danger">*</span></label>
+                                    <InputSelect class="form-select" @bind-Value="selectedSchedule.VehicleId">
+                                        <option value="">Selecteer een voertuig</option>
+                                        @foreach (var vehicle in vehicles)
+                                        {
+                                            <option value="@vehicle.Id">@vehicle.LicensePlate - @vehicle.Model</option>
+                                        }
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => selectedSchedule.VehicleId)" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Laatste onderhoud <span class="text-danger">*</span></label>
+                                    <InputDate class="form-control" @bind-Value="selectedSchedule.LastMaintenanceDate" />
+                                    <ValidationMessage For="@(() => selectedSchedule.LastMaintenanceDate)" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Kilometerstand bij laatste onderhoud</label>
+                                    <InputNumber class="form-control" @bind-Value="selectedSchedule.MileageAtLastMaintenance" />
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label class="form-label">Volgende onderhoud <span class="text-danger">*</span></label>
+                                    <InputDate class="form-control" @bind-Value="selectedSchedule.NextMaintenanceDueDate" />
+                                    <ValidationMessage For="@(() => selectedSchedule.NextMaintenanceDueDate)" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Volgende kilometerstand</label>
+                                    <InputNumber class="form-control" @bind-Value="selectedSchedule.NextMaintenanceMileage" />
+                                </div>
+
+                                <div class="mb-3">
+                                    <label class="form-label">Status <span class="text-danger">*</span></label>
+                                    <InputSelect class="form-select" @bind-Value="selectedSchedule.Status">
+                                        <option value="Active">Actief</option>
+                                        <option value="Pending">In afwachting</option>
+                                        <option value="Completed">Voltooid</option>
+                                        <option value="Expired">Verlopen</option>
+                                    </InputSelect>
+                                    <ValidationMessage For="@(() => selectedSchedule.Status)" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Notities</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="selectedSchedule.Notes" />
+                        </div>
+
+                        <div class="d-flex justify-content-end mt-4">
+                            <button type="button" class="btn btn-secondary me-2" @onclick="HideForm">
+                                <i class="bi bi-x-circle"></i> Annuleren
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> Opslaan
+                            </button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private IEnumerable<MaintenanceScheduleResponseDto> schedules = Enumerable.Empty<MaintenanceScheduleResponseDto>();
+    private List<VehicleResponseDto> vehicles = new();
+    private MaintenanceScheduleRequestDto selectedSchedule = new();
+    private bool isFormVisible = false;
+    private int? editingId = null;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            vehicles = (await VehicleService.GetAllAsync()).ToList();
+            schedules = await ScheduleService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Fout bij laden: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Completed" => "bg-success",
+            "Active" => "bg-primary",
+            "Pending" => "bg-warning",
+            "Expired" => "bg-danger",
+            _ => "bg-secondary"
+        };
+    }
+
+    private string GetStatusDisplay(string status)
+    {
+        return status switch
+        {
+            "Completed" => "Voltooid",
+            "Active" => "Actief",
+            "Pending" => "In afwachting",
+            "Expired" => "Verlopen",
+            _ => status
+        };
+    }
+
+    private void ShowAddForm()
+    {
+        selectedSchedule = new MaintenanceScheduleRequestDto
+        {
+            LastMaintenanceDate = DateTime.Today,
+            NextMaintenanceDueDate = DateTime.Today.AddMonths(6),
+            Status = "Active"
+        };
+        editingId = null;
+        isFormVisible = true;
+    }
+
+    private void EditSchedule(MaintenanceScheduleResponseDto schedule)
+    {
+        selectedSchedule = new MaintenanceScheduleRequestDto
+        {
+            VehicleId = schedule.VehicleId,
+            LastMaintenanceDate = schedule.LastMaintenanceDate,
+            NextMaintenanceDueDate = schedule.NextMaintenanceDueDate,
+            MileageAtLastMaintenance = schedule.MileageAtLastMaintenance,
+            NextMaintenanceMileage = schedule.NextMaintenanceMileage,
+            Status = schedule.Status,
+            Notes = schedule.Notes
+        };
+        editingId = schedule.Id;
+        isFormVisible = true;
+    }
+
+    private async Task CompleteMaintenance(MaintenanceScheduleResponseDto schedule)
+    {
+        var vehicle = vehicles.FirstOrDefault(v => v.Id == schedule.VehicleId);
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm",
+            $"Weet u zeker dat u het onderhoud voor {vehicle?.LicensePlate} wilt markeren als voltooid?");
+
+        if (!confirmed) return;
+
+        try
+        {
+            // Update schedule
+            var updatedSchedule = new MaintenanceScheduleRequestDto
+            {
+                VehicleId = schedule.VehicleId,
+                LastMaintenanceDate = DateTime.Today,
+                NextMaintenanceDueDate = schedule.NextMaintenanceDueDate,
+                MileageAtLastMaintenance = schedule.MileageAtLastMaintenance,
+                NextMaintenanceMileage = schedule.NextMaintenanceMileage,
+                Status = "Completed",
+                Notes = schedule.Notes
+            };
+
+            await ScheduleService.UpdateAsync(schedule.Id, updatedSchedule);
+
+            // Create log
+            var log = new MaintenanceLogRequestDto
+            {
+                VehicleId = schedule.VehicleId,
+                MaintenanceDate = DateTime.Today,
+                Description = string.IsNullOrEmpty(schedule.Notes)
+                    ? $"Onderhoud voltooid voor {vehicle?.LicensePlate}"
+                    : $"Onderhoud voltooid: {schedule.Notes}",
+                Status = "Voltooid",
+                IsScheduled = true
+            };
+
+            await MaintenanceLogService.AddAsync(log);
+
+            await LoadData();
+            await JsRuntime.InvokeVoidAsync("alert", "Onderhoud succesvol gemarkeerd als voltooid!");
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Fout: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteSchedule(int id)
+    {
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm",
+            "Weet u zeker dat u dit onderhoudsschema wilt verwijderen?");
+
+        if (confirmed)
+        {
+            try
+            {
+                await ScheduleService.DeleteAsync(id);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                await JsRuntime.InvokeVoidAsync("alert", $"Fout: {ex.Message}");
+            }
+        }
+    }
+
+    private async Task OnScheduleSaved()
+    {
+        try
+        {
+            if (editingId.HasValue)
+            {
+                await ScheduleService.UpdateAsync(editingId.Value, selectedSchedule);
+            }
+            else
+            {
+                await ScheduleService.AddAsync(selectedSchedule);
+            }
+
+            await LoadData();
+            isFormVisible = false;
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Fout: {ex.Message}");
+        }
+    }
+
+    private void HideForm()
+    {
+        isFormVisible = false;
+    }
+}

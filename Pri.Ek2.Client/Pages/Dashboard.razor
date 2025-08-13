@@ -1,0 +1,285 @@
+﻿@page "/"
+@attribute [Authorize]
+@inject AuthenticationStateProvider AuthProvider
+@inject IUserProfileService UserProfileService
+@inject IMaintenanceScheduleService MaintenanceScheduleService
+@inject IMaintenanceLogService MaintenanceLogService
+@inject IVehicleService VehicleService
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+
+@implements IDisposable
+
+<PageTitle>Dashboard</PageTitle>
+
+<div class="container py-4">
+    <!-- Header -->
+    <DashboardHeader UserProfile="userProfile"
+                     LastUpdated="lastUpdated"
+                     AutoRefresh="autoRefresh"
+                     OnRefresh="RefreshData"
+                     OnToggleAutoRefresh="ToggleAutoRefresh" />
+
+
+    <DashboardSummaryCards VehicleCount="@vehicles.Count"
+                           OpenSchedules="@openSchedules"
+                           CompletedLogs30Days="@completedLogs30Days"
+                           LogsWithAttachments="@logsWithAttachments" />
+
+    <!-- Alerts en prioriteiten -->
+    <div class="row g-3 mb-4">
+        <div class="col-lg-6">
+            <MaintenanceAlerts Alerts="maintenanceAlerts"
+                               GetDueBadgeClass="GetDueBadgeClass"
+                               GetDueTextClass="GetDueTextClass"
+                               GetVehicleId="GetVehicleId" />
+        </div>
+        <div class="col-lg-6">
+            <PriorityTasksCard Tasks="priorityTasks"
+                               GetPriorityBadge="GetPriorityBadge" />
+        </div>
+    </div>
+
+    <!-- Main content -->
+    <div class="row g-3">
+        <div class="col-lg-7">
+            <!-- Aanstaande onderhoud -->
+            <UpcomingMaintenanceSchedules Schedules="upcomingSchedules"
+                                          Vehicles="vehicles"
+                                          GetScheduleBadgeClass="GetScheduleBadgeClass"
+                                          GetScheduleDisplay="GetScheduleDisplay"
+                                          OnEdit="OpenScheduleEdit"
+                                          OnDetails="OpenScheduleDetails" />
+            <!-- Recente logs -->
+            <RecentMaintenanceLogsCard Logs="recentLogs"
+                                       Vehicles="vehicles"
+                                       GetLogBadgeClass="GetLogBadgeClass" />
+        </div>
+        <!-- Sidebar -->
+        <div class="col-lg-5">
+            <!-- Status overzicht -->
+            <StatusOverviewCard CountByStatus="countByStatus"
+                                Percent="Percent" />
+            <!-- Snelle acties -->
+            <QuickActionsCard ExportSummary="EventCallback.Factory.Create(this, ExportSummary)" />
+        </div>
+    </div>
+</div>
+
+@code {
+    private UserProfileResponseDto? userProfile;
+    private DateTime lastUpdated;
+    private bool autoRefresh = false;
+
+    private List<VehicleResponseDto> vehicles = new();
+    private List<MaintenanceScheduleResponseDto> schedules = new();
+    private List<MaintenanceLogResponseDto> logs = new();
+    private List<VehicleMaintenanceAlertDto> maintenanceAlerts = new();
+
+
+    private System.Timers.Timer? refreshTimer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadUserProfileAsync();
+        await LoadDataAsync();
+
+        refreshTimer = new System.Timers.Timer(60000); // 1 minuut
+        refreshTimer.Elapsed += async (s, e) => await InvokeAsync(RefreshData);
+        if (autoRefresh)
+        {
+            refreshTimer.Start();
+        }
+
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private async void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        await LoadDataAsync();
+        StateHasChanged();
+    }
+
+    private async Task LoadUserProfileAsync()
+    {
+        var authState = await AuthProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            userProfile = await UserProfileService.GetUserProfileAsync(user.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "");
+        }
+        lastUpdated = DateTime.Now;
+    }
+
+    private async Task LoadDataAsync()
+    {
+
+        vehicles = (await VehicleService.GetAllAsync()).ToList();
+        schedules = (await MaintenanceScheduleService.GetAllAsync()).ToList();
+        logs = (await MaintenanceLogService.GetAllAsync()).ToList();
+
+        maintenanceAlerts = schedules
+            .Where(s => s.Status != "Completed" && s.NextMaintenanceDueDate < DateTime.Now.AddDays(14))
+            .Join(vehicles,
+                s => s.VehicleId,
+                v => v.Id,
+                (s, v) => new VehicleMaintenanceAlertDto
+                {
+                    LicensePlate = v.LicensePlate,
+                    VehicleModel = v.Model,
+                    NextMaintenanceDue = s.NextMaintenanceDueDate,
+                    Status = GetAlertLevel(s.NextMaintenanceDueDate)
+                })
+            .OrderBy(a => a.NextMaintenanceDue)
+            .ToList();
+
+        lastUpdated = DateTime.Now;
+        StateHasChanged();
+    }
+
+    private string GetAlertLevel(DateTime dueDate)
+    {
+        var daysUntilDue = (dueDate - DateTime.Today).Days;
+        if (daysUntilDue < 0)
+            return "Critical";      // Te laat
+        if (daysUntilDue == 0)
+            return "Warning";       // Vandaag
+        if (daysUntilDue <= 3)
+            return "Warning";       // Binnen 3 dagen
+        return "Planned";
+    }
+
+
+    private string GetAlertBadgeClass(VehicleMaintenanceAlertDto alert) => alert.Status switch
+    {
+        "Critical" => "bg-danger",
+        "Warning" => "bg-warning text-dark",
+        _ => "bg-info"
+    };
+
+    private string GetAlertStatusText(VehicleMaintenanceAlertDto alert) => alert.Status switch
+    {
+        "Critical" => "URGENT",
+        "Warning" => "Waarschuwing",
+        _ => "Gepland"
+    };
+
+    private string GetDueTextClass(VehicleMaintenanceAlertDto alert) => alert.Status switch
+    {
+        "Critical" => "text-danger fw-bold",
+        "Warning" => "text-warning",
+        _ => "text-muted"
+    };
+
+    private string GetVehicleId(string licensePlate) =>
+        vehicles.FirstOrDefault(v => v.LicensePlate == licensePlate)?.Id.ToString();
+
+
+    private string GetDueBadgeClass(int daysUntilDue)
+    {
+        if (daysUntilDue < 0)
+            return "bg-danger"; // Overdue
+        if (daysUntilDue <= 3)
+            return "bg-warning text-dark"; // Due soon
+        return "bg-info"; // Not urgent
+    }
+
+
+    private async Task RefreshData()
+    {
+        await LoadDataAsync();
+    }
+
+    private void ToggleAutoRefresh()
+    {
+        autoRefresh = !autoRefresh;
+        if (autoRefresh)
+            refreshTimer?.Start();
+        else
+            refreshTimer?.Stop();
+    }
+
+    private int openSchedules => schedules.Count(s => s.Status == "Pending");
+
+    private int completedLogs30Days => logs.Count(l => l.MaintenanceDate >= DateTime.Now.AddDays(-30));
+
+    private int logsWithAttachments => logs.Count(l => l.AttachmentPaths != null && l.AttachmentPaths.Any());
+
+    private IEnumerable<MaintenanceScheduleResponseDto> upcomingSchedules =>
+        schedules.Where(s => s.NextMaintenanceDueDate >= DateTime.Now).OrderBy(s => s.NextMaintenanceDueDate).Take(6);
+
+    private IEnumerable<MaintenanceLogResponseDto> recentLogs =>
+        logs.OrderByDescending(l => l.MaintenanceDate).Take(6);
+
+    private string GetScheduleBadgeClass(string status) => status switch
+    {
+        "Completed" => "badge bg-success",
+        "Pending" => "badge bg-warning text-dark",
+        "Active" => "badge bg-primary",
+        _ => "badge bg-secondary"
+    };
+
+    private string GetScheduleDisplay(string status) => status switch
+    {
+        "Completed" => "Voltooid",
+        "Pending" => "In afwachting",
+        "Active" => "Actief",
+        _ => status
+    };
+
+    private string GetLogBadgeClass(string status) => status switch
+    {
+        "Completed" => "badge bg-success",
+        "Pending" => "badge bg-warning text-dark",
+        "Active" => "badge bg-primary",
+        _ => "badge bg-secondary"
+    };
+
+    // Placeholder for priority tasks
+    private List<(string Title, DateTime DueDate, string Priority)> priorityTasks = new()
+{
+        ("Bandenspanning controleren", DateTime.Now.AddDays(2), "Hoog"),
+        ("Olie verversen", DateTime.Now.AddDays(5), "Middel"),
+        ("Remmen controleren", DateTime.Now.AddDays(7), "Laag")
+    };
+
+    private string GetPriorityBadge(string priority) => priority switch
+    {
+        "Hoog" => "badge bg-danger",
+        "Middel" => "badge bg-warning text-dark",
+        "Laag" => "badge bg-secondary",
+        _ => "badge bg-secondary"
+    };
+
+    private int countByStatus(string status) => schedules.Count(s => s.Status == status);
+
+    private int Percent(int count)
+    {
+        int total = schedules.Count;
+        if (total == 0) return 0;
+        return (int)Math.Round(count * 100.0 / total);
+    }
+
+    private void OpenScheduleEdit(int scheduleId)
+    {
+        NavigationManager.NavigateTo($"/maintenance-schedules/edit/{scheduleId}");
+    }
+
+    private void OpenScheduleDetails(int scheduleId)
+    {
+        NavigationManager.NavigateTo($"/maintenance-schedules/details/{scheduleId}");
+    }
+
+    private async Task ExportSummary()
+    {
+        // Implementatie export (bijv. CSV) of toon message
+        await JSRuntime.InvokeVoidAsync("alert", "Exporteren is nog niet geïmplementeerd.");
+    }
+
+    public void Dispose()
+    {
+        refreshTimer?.Stop();
+        refreshTimer?.Dispose();
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}

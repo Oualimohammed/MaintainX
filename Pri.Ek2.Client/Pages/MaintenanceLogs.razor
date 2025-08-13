@@ -1,0 +1,355 @@
+﻿@page "/maintenance-logs"
+@attribute [Authorize(Roles = "Mechanic,Admin")]
+@inject IMaintenanceLogService MaintenanceService
+@inject IVehicleService VehicleService
+@inject IMaintenanceScheduleService ScheduleService
+@inject IJSRuntime JsRuntime
+@inject HttpClient Http
+
+<PageTitle>Onderhoudshistorie</PageTitle>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3><i class="bi bi-clipboard-check me-2"></i>Onderhoudshistorie</h3>
+        <button class="btn btn-outline-secondary" @onclick="RefreshData">
+            <i class="bi bi-arrow-clockwise"></i> Vernieuwen
+        </button>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center my-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+        </div>
+    }
+    else if (!logs.Any())
+    {
+        <div class="alert alert-info">
+            <i class="bi bi-info-circle"></i> Geen onderhoudslogs gevonden
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Voertuig</th>
+                                <th>Datum</th>
+                                <th>Type</th>
+                                <th>Beschrijving</th>
+                                <th>Status</th>
+                                <th>Bijlagen</th>
+                                <th class="text-end">Acties</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var log in logs.OrderByDescending(l => l.MaintenanceDate))
+                            {
+                                var vehicle = vehicles.FirstOrDefault(v => v.Id == log.VehicleId);
+                                var isCompleted = log.Status == "Voltooid";
+
+                                <tr class="@(isCompleted ? "table-success" : "")">
+                                    <td>
+                                        @if (vehicle != null)
+                                        {
+                                            <div class="fw-bold">@vehicle.LicensePlate</div>
+                                            <div class="text-muted small">@vehicle.Model</div>
+                                        }
+                                    </td>
+                                    <td>
+                                        @log.MaintenanceDate.ToShortDateString()
+                                    </td>
+                                    <td>
+                                        <span class="badge @(log.IsScheduled ? "bg-primary" : "bg-secondary")">
+                                            @(log.IsScheduled ? "Gepland" : "Ad-hoc")
+                                        </span>
+                                    </td>
+                                    <td class="text-truncate" style="max-width: 200px;" title="@log.Description">
+                                        @log.Description
+                                    </td>
+                                    <td>
+                                        <span class="badge @GetStatusBadgeClass(log.Status)">
+                                            @log.Status
+                                        </span>
+                                    </td>
+                                    <td>
+                                    <td>
+                                        @if (log.AttachmentPaths != null && log.AttachmentPaths.Any())
+                                        {
+                                            @foreach (var path in log.AttachmentPaths)
+                                            {
+                                                var fileName = System.IO.Path.GetFileName(path);
+                                                var ext = System.IO.Path.GetExtension(path).ToLower();
+
+                                                <span class="badge bg-light border text-dark px-2 py-1 d-flex align-items-center" style="font-size: 0.85rem;">
+                                                    <i class="@GetFileIconClass(ext) me-1"></i>
+                                                    <a href="javascript:void(0);"
+                                                       class="text-decoration-none me-2"
+                                                       @onclick="() => DownloadFile(log.Id, fileName)">
+                                                        @ShortenFileName(fileName, 15)
+                                                    </a>
+                                                    <button class="btn btn-sm btn-link text-primary p-0"
+                                                            @onclick="() => DownloadFile(log.Id, fileName)"
+                                                            title="Download @fileName">
+                                                        <i class="bi bi-download"></i>
+                                                    </button>
+                                                </span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted small">Geen bijlagen</span>
+                                        }
+                                    </td>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm">
+                                            <InputFile id="@($"fileInput-{log.Id}")" style="display: none;"
+                                                       OnChange="e => UploadFiles(log.Id, e)" multiple />
+                                            <button class="btn btn-info"
+                                                    @onclick='() => JsRuntime.InvokeVoidAsync("triggerFileInput", $"fileInput-{log.Id}")'
+                                                    title="Bestand toevoegen">
+                                                <i class="bi bi-paperclip"></i>
+                                            </button>
+                                            @if (!isCompleted && log.IsScheduled)
+                                            {
+                                                <button class="btn btn-success"
+                                                        @onclick="() => CompleteLog(log)"
+                                                        title="Markeer als voltooid">
+                                                    <i class="bi bi-check-circle"></i>
+                                                </button>
+                                            }
+                                            <button class="btn btn-danger"
+                                                    @onclick="() => DeleteLog(log.Id)"
+                                                    title="Verwijderen">
+                                                <i class="bi bi-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private IEnumerable<MaintenanceLogResponseDto> logs = Enumerable.Empty<MaintenanceLogResponseDto>();
+    private List<VehicleResponseDto> vehicles = new();
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadData();
+    }
+
+    private async Task LoadData()
+    {
+        isLoading = true;
+        try
+        {
+            vehicles = (await VehicleService.GetAllAsync()).ToList();
+            logs = await MaintenanceService.GetAllAsync();
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Fout bij laden: {ex.Message}");
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task RefreshData()
+    {
+        await LoadData();
+    }
+
+    private async Task DownloadFile(int logId, string fileName)
+    {
+        try
+        {
+            var response = await Http.GetAsync($"/api/MaintenanceLog/{logId}/download?fileName={Uri.EscapeDataString(fileName)}");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var content = await response.Content.ReadAsByteArrayAsync();
+                var base64 = Convert.ToBase64String(content);
+
+                var mimeType = GetMimeType(fileName);
+                var dataUri = $"data:{mimeType};base64,{base64}";
+
+                await JsRuntime.InvokeVoidAsync("downloadFile", fileName, dataUri);
+            }
+            else
+            {
+                await JsRuntime.InvokeVoidAsync("alert", "Download mislukt: " + response.StatusCode);
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Fout bij downloaden: {ex.Message}");
+        }
+    }
+
+    private string GetMimeType(string fileName)
+    {
+        var ext = Path.GetExtension(fileName).ToLowerInvariant();
+        return ext switch
+        {
+            ".pdf" => "application/pdf",
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".doc" or ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            ".xls" or ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            ".txt" => "text/plain",
+            _ => "application/octet-stream"
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Voltooid" => "bg-success",
+            "Gepland" => "bg-warning",
+            "Geannuleerd" => "bg-secondary",
+            _ => "bg-info"
+        };
+    }
+
+    private async Task UploadFiles(int logId, InputFileChangeEventArgs e)
+    {
+        var files = e.GetMultipleFiles();
+        if (!files.Any()) return;
+
+        try
+        {
+            var content = new MultipartFormDataContent();
+
+            foreach (var file in files)
+            {
+                var fileContent = new StreamContent(file.OpenReadStream(10 * 1024 * 1024)); // Max 10MB per bestand
+                content.Add(fileContent, "files", file.Name); 
+            }
+
+            var response = await Http.PostAsync($"/api/MaintenanceLog/{logId}/attachments", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                await LoadData();
+                await JsRuntime.InvokeVoidAsync("alert", $"{files.Count} bestand(en) succesvol geüpload!");
+            }
+            else
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                await JsRuntime.InvokeVoidAsync("alert", $"Fout bij uploaden: {error}");
+            }
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Fout bij uploaden: {ex.Message}");
+        }
+    }
+
+    private string GetFileIconClass(string ext) => ext switch
+    {
+        ".pdf" => "bi bi-file-earmark-pdf text-danger",
+        ".jpg" or ".jpeg" or ".png" => "bi bi-file-earmark-image text-info",
+        ".doc" or ".docx" => "bi bi-file-earmark-word text-primary",
+        ".xls" or ".xlsx" => "bi bi-file-earmark-excel text-success",
+        _ => "bi bi-paperclip"
+    };
+
+    private string ShortenFileName(string name, int maxLength)
+    {
+        if (name.Length <= maxLength) return name;
+        var ext = Path.GetExtension(name);
+        return name.Substring(0, maxLength - ext.Length) + "..." + ext;
+    }
+
+
+    private async Task CompleteLog(MaintenanceLogResponseDto log)
+    {
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm",
+            $"Weet u zeker dat u dit onderhoud wilt markeren als voltooid?");
+
+        if (!confirmed) return;
+
+        try
+        {
+            // Update log
+            var updatedLog = new MaintenanceLogRequestDto
+            {
+                VehicleId = log.VehicleId,
+                MaintenanceDate = log.MaintenanceDate,
+                Description = log.Description,
+                Status = "Voltooid",
+                IsScheduled = log.IsScheduled,
+                AttachmentPaths = log.AttachmentPaths?.ToList() ?? new List<string>()
+            };
+
+            await MaintenanceService.UpdateAsync(log.Id, updatedLog);
+
+            // Update related schedule if exists
+            if (log.IsScheduled)
+            {
+                var schedules = await ScheduleService.GetAllAsync();
+                var relatedSchedule = schedules.FirstOrDefault(s =>
+                    s.VehicleId == log.VehicleId &&
+                    s.NextMaintenanceDueDate.Date == log.MaintenanceDate.Date);
+
+                if (relatedSchedule != null)
+                {
+                    var updatedSchedule = new MaintenanceScheduleRequestDto
+                    {
+                        VehicleId = relatedSchedule.VehicleId,
+                        LastMaintenanceDate = log.MaintenanceDate,
+                        NextMaintenanceDueDate = relatedSchedule.NextMaintenanceDueDate,
+                        MileageAtLastMaintenance = relatedSchedule.MileageAtLastMaintenance,
+                        NextMaintenanceMileage = relatedSchedule.NextMaintenanceMileage,
+                        Status = "Completed",
+                        Notes = relatedSchedule.Notes
+                    };
+
+                    await ScheduleService.UpdateAsync(relatedSchedule.Id, updatedSchedule);
+                }
+            }
+
+            await LoadData();
+            await JsRuntime.InvokeVoidAsync("alert", "Onderhoud succesvol gemarkeerd als voltooid!");
+        }
+        catch (Exception ex)
+        {
+            await JsRuntime.InvokeVoidAsync("alert", $"Fout: {ex.Message}");
+        }
+    }
+
+    private async Task DeleteLog(int id)
+    {
+        bool confirmed = await JsRuntime.InvokeAsync<bool>("confirm",
+            "Weet u zeker dat u dit log wilt verwijderen?");
+
+        if (confirmed)
+        {
+            try
+            {
+                await MaintenanceService.DeleteAsync(id);
+                await LoadData();
+            }
+            catch (Exception ex)
+            {
+                await JsRuntime.InvokeVoidAsync("alert", $"Fout: {ex.Message}");
+            }
+        }
+    }
+}

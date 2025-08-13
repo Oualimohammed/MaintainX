@@ -1,0 +1,269 @@
+﻿@page "/vehicles"
+@inject IVehicleService VehicleService
+@inject IJSRuntime JSRuntime
+
+<h3>Voertuigen</h3>
+
+<div class="mb-3 d-flex justify-content-between align-items-center">
+    <input class="form-control w-50" placeholder="Zoek op kenteken, model, type..." @bind="searchTerm" />
+    <button class="btn btn-primary" @onclick="AddNewVehicle">Nieuw voertuig toevoegen</button>
+</div>
+
+@if (isLoading)
+{
+    <div class="text-center my-5">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    </div>
+}
+else if (errorMessage != null)
+{
+    <div class="alert alert-danger">@errorMessage</div>
+}
+else if (filteredVehicles.Count == 0)
+{
+    <div class="alert alert-info">
+        <i class="bi bi-info-circle"></i> Geen voertuigen gevonden.
+    </div>
+}
+else
+{
+    <table class="table table-hover">
+        <thead class="table-light">
+            <tr>
+                <th>Kenteken</th>
+                <th>Model</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Kilometerstand</th>
+                <th>Emissie</th>
+                <th>Acties</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var v in filteredVehicles)
+            {
+                <tr>
+                    <td>@v.LicensePlate</td>
+                    <td>@v.Model</td>
+                    <td>@GetVehicleTypeDisplay(v.Type)</td>
+                    <td>
+                        <span class="badge @(GetStatusBadgeClass(v.Status))">@v.Status</span>
+                    </td>
+                    <td>@v.CurrentMileage.ToString("N0") km</td>
+                    <td>
+                        <span class="badge @(v.EmissionFactor > 2.5m ? "bg-danger" : "bg-success")">
+                            @v.EmissionFactor g/km
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-primary me-1" @onclick="() => EditVehicle(v)">Bewerken</button>
+                        <button class="btn btn-sm btn-danger" @onclick="() => ConfirmDeleteVehicle(v.Id)">Verwijderen</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (showEditForm)
+{
+    <div class="modal-backdrop show"></div>
+    <div class="modal show d-block" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">@((editingVehicleId.HasValue ? "Voertuig bewerken" : "Nieuw voertuig"))</h5>
+                    <button type="button" class="btn-close btn-close-white" @onclick="CancelEdit"></button>
+                </div>
+                <div class="modal-body">
+                    <EditForm Model="editVehicle" OnValidSubmit="HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="mb-3">
+                            <label>Kenteken <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="editVehicle.LicensePlate" class="form-control" />
+                            <ValidationMessage For="@(() => editVehicle.LicensePlate)" />
+                        </div>
+                        <div class="mb-3">
+                            <label>Model <span class="text-danger">*</span></label>
+                            <InputText @bind-Value="editVehicle.Model" class="form-control" />
+                            <ValidationMessage For="@(() => editVehicle.Model)" />
+                        </div>
+                        <div class="mb-3">
+                            <label>Type <span class="text-danger">*</span></label>
+                            <InputSelect @bind-Value="editVehicle.Type" class="form-control">
+                                @foreach (var type in Enum.GetValues(typeof(VehicleType)))
+                                {
+                                    <option value="@type">@GetVehicleTypeDisplay((VehicleType)type)</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => editVehicle.Type)" />
+                        </div>
+                        <div class="mb-3">
+                            <label>Emissiefactor (g/km) <span class="text-danger">*</span></label>
+                            <InputNumber @bind-Value="editVehicle.EmissionFactor" class="form-control" />
+                            <ValidationMessage For="@(() => editVehicle.EmissionFactor)" />
+                        </div>
+                        <div class="d-flex justify-content-end gap-2">
+                            <button type="submit" class="btn btn-success">Opslaan</button>
+                            <button type="button" class="btn btn-secondary" @onclick="CancelEdit">Annuleren</button>
+                        </div>
+                    </EditForm>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    private List<VehicleResponseDto> vehicles = new();
+    private List<VehicleResponseDto> filteredVehicles => string.IsNullOrWhiteSpace(searchTerm)
+        ? vehicles
+        : vehicles.Where(v =>
+            (v.LicensePlate?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            (v.Model?.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ?? false) ||
+            GetVehicleTypeDisplay(v.Type).Contains(searchTerm, StringComparison.OrdinalIgnoreCase)
+        ).ToList();
+
+    private VehicleRequestDto editVehicle = new VehicleRequestDto();
+    private bool showEditForm = false;
+    private int? editingVehicleId = null;
+    private bool isLoading = true;
+    private string errorMessage;
+    private string searchTerm = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadVehicles();
+    }
+
+    private async Task LoadVehicles()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            var result = await VehicleService.GetAllAsync();
+            vehicles = result.ToList();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij laden voertuigen: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void AddNewVehicle()
+    {
+        editingVehicleId = null;
+        editVehicle = new VehicleRequestDto();
+        showEditForm = true;
+    }
+
+    private void EditVehicle(VehicleResponseDto vehicle)
+    {
+        editingVehicleId = vehicle.Id;
+        editVehicle = new VehicleRequestDto
+        {
+            LicensePlate = vehicle.LicensePlate,
+            Model = vehicle.Model,
+            Type = vehicle.Type,
+            EmissionFactor = vehicle.EmissionFactor
+        };
+        showEditForm = true;
+    }
+
+    private async Task ConfirmDeleteVehicle(int id)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Weet je zeker dat je dit voertuig wilt verwijderen?");
+        if (confirmed)
+        {
+            await DeleteVehicle(id);
+        }
+    }
+
+    private async Task DeleteVehicle(int id)
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            await VehicleService.DeleteAsync(id);
+            await LoadVehicles();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij verwijderen: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        isLoading = true;
+        errorMessage = null;
+        try
+        {
+            if (editingVehicleId.HasValue)
+            {
+                await VehicleService.UpdateAsync(editingVehicleId.Value, editVehicle);
+            }
+            else
+            {
+                await VehicleService.AddAsync(editVehicle);
+            }
+            showEditForm = false;
+            await LoadVehicles();
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Fout bij opslaan: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void CancelEdit()
+    {
+        showEditForm = false;
+    }
+
+    private string GetVehicleTypeDisplay(VehicleType type)
+    {
+        return type switch
+        {
+            VehicleType.Diesel => "Diesel",
+            VehicleType.Electric => "Elektrisch",
+            VehicleType.Hybrid => "Hybride",
+            VehicleType.Gasoline => "Benzine",
+            VehicleType.CNG => "CNG",
+            VehicleType.LPG => "LPG",
+            VehicleType.Hydrogen => "Waterstof",
+            VehicleType.Biofuel => "Biobrandstof",
+            VehicleType.Bicycle => "Fiets",
+            _ => type.ToString()
+        };
+    }
+
+    private string GetStatusBadgeClass(string status)
+    {
+        return status switch
+        {
+            "Actief" => "bg-success",
+            "Inactief" => "bg-secondary",
+            "Onderhoud" => "bg-warning",
+            "Defect" => "bg-danger",
+            _ => "bg-info"
+        };
+    }
+}

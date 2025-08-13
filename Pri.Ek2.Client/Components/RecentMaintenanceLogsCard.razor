@@ -1,0 +1,70 @@
+﻿<div class="card shadow-sm mt-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">
+            <i class="bi bi-clipboard-check me-1"></i> Recente onderhoudslogs
+        </h5>
+        <small class="text-muted">Nieuwste eerst</small>
+    </div>
+    <div class="card-body p-0">
+        @if (!Logs.Any())
+        {
+            <div class="p-3 text-center text-muted">
+                <i class="bi bi-clipboard" style="font-size: 1.5rem;"></i>
+                <p class="mt-2 mb-0">Geen recente logs</p>
+            </div>
+        }
+        else
+        {
+            <div class="list-group list-group-flush">
+                @foreach (var log in Logs)
+                {
+                    var vehicle = Vehicles.FirstOrDefault(v => v.Id == log.VehicleId);
+                    <div class="list-group-item d-flex justify-content-between align-items-start">
+                        <div class="me-3 flex-grow-1">
+                            <div class="fw-bold">
+                                @if (vehicle != null)
+                                {
+                                    @vehicle.LicensePlate
+                                }
+                                else
+                                {
+                                    <span class="text-danger">Onbekend voertuig</span>
+                                }
+                            </div>
+                            <div class="small text-muted">
+                                @log.MaintenanceDate.ToString("dd-MM-yyyy") —
+                                @(log.IsScheduled ? "Gepland" : "Ad-hoc")
+                            </div>
+                            <div class="text-truncate mt-1" style="max-width: 100%;">
+                                @log.Description
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <span class="badge @GetLogBadgeClass(log.Status)">
+                                @log.Status
+                            </span>
+                            <div class="small mt-1">
+                                @if (log.AttachmentPaths?.Count > 0)
+                                {
+                                    <span class="badge bg-info">
+                                        <i class="bi bi-paperclip"></i> @log.AttachmentPaths.Count
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">Geen bijlagen</span>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public IEnumerable<MaintenanceLogResponseDto> Logs { get; set; }
+    [Parameter] public List<VehicleResponseDto> Vehicles { get; set; }
+    [Parameter] public Func<string, string> GetLogBadgeClass { get; set; }
+}

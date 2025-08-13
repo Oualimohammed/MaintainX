@@ -1,0 +1,56 @@
+﻿<div class="row g-3 mb-4">
+    <div class="col-sm-6 col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small">
+                    <i class="bi bi-truck me-1"></i> Voertuigen
+                </div>
+                <div class="display-6 fw-bold">@VehicleCount</div>
+                <div class="small text-muted mt-2">Totaal geregistreerd</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small">
+                    <i class="bi bi-calendar-x me-1"></i> Openstaande schema's
+                </div>
+                <div class="display-6 fw-bold">@OpenSchedules</div>
+                <div class="small text-muted mt-2">Niet voltooide taken</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small">
+                    <i class="bi bi-check-circle me-1"></i> Voltooide logs
+                </div>
+                <div class="display-6 fw-bold">@CompletedLogs30Days</div>
+                <div class="small text-muted mt-2">Laatste 30 dagen</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-sm-6 col-md-3">
+        <div class="card h-100 shadow-sm">
+            <div class="card-body text-center">
+                <div class="text-muted small">
+                    <i class="bi bi-paperclip me-1"></i> Bijlagen
+                </div>
+                <div class="display-6 fw-bold">@LogsWithAttachments</div>
+                <div class="small text-muted mt-2">Logs met bijlagen</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int VehicleCount { get; set; }
+    [Parameter] public int OpenSchedules { get; set; }
+    [Parameter] public int CompletedLogs30Days { get; set; }
+    [Parameter] public int LogsWithAttachments { get; set; }
+}
